@@ -1,7 +1,9 @@
+import datetime
 from typing import List
 
 import numpy as np
 import pandas as pd
+import requests
 from openpyxl import load_workbook
 
 col: List[str] = ['Date', 'Washington DC', 'New York City', 'Los Angeles', 'San Francisco', 'Berlin', 'London', 'Paris',
@@ -47,21 +49,38 @@ def write_data(main_data: pd.DataFrame):
 
     # TODO 调整excel 右对齐
     # new_data.style.set_properties(**{'text-align': 'right'})
+    save_path = 'generated/世界主要城市活动指数.xlsx'
 
-    pre_data = pd.DataFrame(pd.read_excel('世界主要城市活动指数.xlsx', sheet_name='geshi'))
-    writer = pd.ExcelWriter('世界主要城市活动指数.xlsx', engine='openpyxl')
-    book = load_workbook('世界主要城市活动指数.xlsx')
+    pre_data = pd.DataFrame(pd.read_excel(save_path, sheet_name='geshi'))
+    writer = pd.ExcelWriter(save_path, engine='openpyxl')
+    book = load_workbook(save_path)
     writer.book = book
     writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
     new_data_rows = pre_data.shape[0]  # 获取原数据的行数
     new_data.to_excel(writer, sheet_name='geshi', startrow=new_data_rows + 1, index=False,
                       header=False)  # 将数据写入excel中的geshi表,从第一个空行开始写
-    # writer.save()  # 保存
+    writer.save()  # 保存
+
+
+def download(path):
+    today = datetime.date.today()
+    single_day = datetime.timedelta(days=1)
+    yesterday = today - single_day
+    yesterday = yesterday.strftime('%Y%m%d')
+    print(yesterday)
+    url = f'https://cdn.citymapper.com/data/cmi/Citymapper_Mobility_Index_{yesterday}.csv'
+    # url = f'https://cdn.citymapper.com/data/cmi/Citymapper_Mobility_Index_{20201215}.csv'
+    r = requests.get(url)
+    with open(path, "wb") as f:
+        f.write(r.content)
 
 
 if __name__ == '__main__':
+    file_path = './downloadFile/Citymapper_Mobility.csv'
+    download(file_path)
     # 网址 https://citymapper.com/cmi
-    data_online = pd.read_csv('Citymapper_Mobility_Index_20201215 (1).csv')
+    data_online = pd.read_csv(file_path, header=3)
 
     data_online = data_online.loc[:, col].tail(7)
+    print(data_online)
     write_data(data_online)
