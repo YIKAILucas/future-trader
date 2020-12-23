@@ -135,9 +135,7 @@ def run_Backtest(fromdate=None, todate=None):
 
     pnl = portvalue - cash
     start = results[0]
-    # 打印结果
     print('夏普比率:', start.analyzers.SharpeRatio.get_analysis())
-
     print('回撤指标:', start.analyzers.DW.get_analysis())
     print(f'净收益: {round(pnl, 2)}')
 
@@ -169,7 +167,7 @@ if __name__ == '__main__':
 
 
 
-    run_Backtest(fromdate1, todate1)
+    run_Backtest(fromdate2, todate2)
     # run_Backtest(fromdate2, todate2)
     # time.sleep(2)
     # run_Backtest(fromdate2, todate2)

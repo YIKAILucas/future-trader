@@ -5,6 +5,19 @@ import config_reader
 ConfigReader = config_reader.ConfigReader()
 
 
+class Mydecorate(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            print("__call__", self.name)
+            print()
+            func(*args, **kwargs)
+
+        return wrapper
+
+
 class TripleFallenStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
@@ -208,32 +221,40 @@ class Bolling_2_0(BollingStrategy_1_0):
         pass
 
     def choose_mode(self):
-        # TODO 喇叭口
-        # if
-        # 高频触及上轨
+        # 1. 布林线喇叭开口
+        now_boll_gap = self.lines.top - self.lines.bot
+        pre_boll_gap = self.lines.top[-10] - self.lines.bot[-10]
+        if now_boll_gap >= 1.5 * pre_boll_gap:
+            self.signal = True
+        # 2. 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
             self.signal = True
-        # 判断是否结束持仓模式
         # 1. 跌破中轨
         if self.datalow < self.lines.mid[0]:
             self.signal = False
             # self.order = self.close()
 
-        # 2. 跌幅超过10%
+        # 2. 跌幅超过3%
         # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
         scope = (self.dataclose - self.dataclose[-1]) / self.dataclose[-1]
         print(f'scope{scope}')
-        if scope < -0.01:
-            print('test')
+        if scope < -0.03:
             self.signal = False
-            # self.order = self.close()
+        # 3. 布林线收口
+        now_boll_gap = self.lines.top - self.lines.bot
+        pre_boll_gap = self.lines.top[-5] - self.lines.bot[-5]
+        if pre_boll_gap >= 1.5 * now_boll_gap:
+            self.signal = False
 
     def next(self):
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
+        self.choose_mode()
 
         # 持仓模式
         if self.signal:
+            print('进入持仓模式')
             self.hold_mode()
         else:
+            print('进入常规模式')
             self.normal_mode()
