@@ -5,8 +5,7 @@ import config_reader
 ConfigReader = config_reader.ConfigReader()
 
 
-class TestStrategy(bt.Strategy):
-
+class TripleFallenStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
         dt = dt or self.datas[0].datetime.date(0)
@@ -193,60 +192,48 @@ class Bolling_2_0(BollingStrategy_1_0):
         # 持仓信号
         self.signal = False
 
-    def next(self):
-        # 持仓模式
-        if self.signal:
-            # 判断是否结束持仓模式
-            # 1. 跌破中轨
-            if self.datalow < self.lines.mid[0]:
-                self.signal = False
-                # self.order = self.close()
-
-        # 2. 跌幅超过10%
-            # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
-            scope = (self.dataclose - self.dataclose[-1]) / self.dataclose[-1]
-            print(f'scope{scope}')
-            if scope < -0.01:
-                print('test')
-                self.signal = False
-                # self.order = self.close()
-
-
-        # 买进
+    def normal_mode(self):
+        if self.datalow <= self.lines.bot[0]:
+            # 下轨买入
             self.order = self.buy(size=self.params.size)
+            # 当天不会平仓
             return
-        else:
-            pass
+        if self.datahigh > self.lines.top[0]:
+            # 上轨平仓
+            self.order = self.close()
+            return
 
-        # super().next()
-        print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
-        # 喇叭口
+    def hold_mode(self):
+        self.order = self.buy(size=self.params.size)
+        pass
+
+    def choose_mode(self):
+        # TODO 喇叭口
         # if
         # 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
             self.signal = True
+        # 判断是否结束持仓模式
+        # 1. 跌破中轨
+        if self.datalow < self.lines.mid[0]:
+            self.signal = False
+            # self.order = self.close()
 
-        # 空仓
-        if not self.position:
-            if self.datalow <= self.lines.bot[0]:
-                # 执行买入
-                self.order = self.buy(size=self.params.size)
-                # self.order = self.buy(price=self.dataclose, size=self.params.size)
-                # return
-        # 有持仓
+        # 2. 跌幅超过10%
+        # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
+        scope = (self.dataclose - self.dataclose[-1]) / self.dataclose[-1]
+        print(f'scope{scope}')
+        if scope < -0.01:
+            print('test')
+            self.signal = False
+            # self.order = self.close()
+
+    def next(self):
+        print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
+
+        # 持仓模式
+        if self.signal:
+            self.hold_mode()
         else:
-            # 持仓模式
-            if self.signal:
-                if self.datalow <= self.lines.bot[0]:
-                    # 执行买入
-                    self.order = self.buy(size=self.params.size)
-                    # self.order = self.buy(price=self.dataclose,size=self.params.size)
-                    return
-            else:
-                if self.datahigh > self.lines.top[0]:
-                    # 执行卖出
-                    # self.order = self.sell(size=self.params.size)
-                    # 全部平仓
-                    pass
-                    self.order = self.close()
+            self.normal_mode()
