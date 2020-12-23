@@ -5,13 +5,15 @@ import datetime
 import datetime as dt
 import os
 import sys
+from configparser import ConfigParser
 
 import backtrader as bt
 import pandas as pd
+import pytest
 # Create a Strategy
 from pyecharts.charts import Line, Bar
 
-from strategies import BollingStrategy
+from strategies import BollingStrategy_1_0, Bolling_2_0
 
 
 def dmy2ymd(dmy):
@@ -49,7 +51,7 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
 
 def run_Backtest(fromdate=None, todate=None):
     # 注意+-，这里最后的pandas要符合backtrader的要求的格式
-    dataframe = pd.read_csv('boll.csv', encoding='utf-8_sig', parse_dates=True)
+    dataframe = pd.read_csv('./backtest/boll.csv', encoding='utf-8_sig', parse_dates=True)
     dataframe.dropna()
     trans_date = [dmy2ymd(d) for d in dataframe['日期']]
 
@@ -96,13 +98,17 @@ def run_Backtest(fromdate=None, todate=None):
     #     # openinterest=-1,
     # )
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, './cdata.csv')
+    datapath = os.path.join(modpath, 'cdata.csv')
 
     # 是否当天交易，当天交易->未来函数
-    cerebro = bt.Cerebro(cheat_on_open=True)
+    # 默认false
+    cerebro = bt.Cerebro(cheat_on_open=False)
 
     # cerebro.addstrategy(TestStrategy)
-    cerebro.addstrategy(BollingStrategy)
+    # cerebro.addstrategy(BollingStrategy_1_0)
+    cerebro.addstrategy(Bolling_2_0)
+
+
     cerebro.addobserver(bt.observers.DrawDown)
     cerebro.addobserver(bt.observers.TimeReturn)
     # cerebro.addobserver(bt.observers.Benchmark)
@@ -110,7 +116,7 @@ def run_Backtest(fromdate=None, todate=None):
     cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
 
     cerebro.adddata(data1)
-    cash = 50000.0
+    cash = ConfigReader.cash
     cerebro.broker.setcash(cash)
 
     cerebro.broker.setcommission(commission=0.0, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
@@ -145,7 +151,7 @@ def run_Backtest(fromdate=None, todate=None):
         # style = 'candlestick',
     )
 
-
+import config_reader
 if __name__ == '__main__':
     period_date = {
         'shudder': [((2015, 3, 15), (2018, 3, 15)), ((2011, 8, 29), (2013, 3, 14))],
@@ -157,8 +163,14 @@ if __name__ == '__main__':
     todate1 = period_date['rise'][0][1]
     fromdate2 = period_date['shudder'][1][0]
     todate2 = period_date['shudder'][1][1]
+
+    ConfigReader = config_reader.ConfigReader()
+    print(ConfigReader.cash)
+
+
+
+    run_Backtest(fromdate1, todate1)
     # run_Backtest(fromdate2, todate2)
-    run_Backtest(fromdate2, todate2)
     # time.sleep(2)
     # run_Backtest(fromdate2, todate2)
 
