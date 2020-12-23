@@ -5,15 +5,13 @@ import datetime
 import datetime as dt
 import os
 import sys
-from configparser import ConfigParser
 
 import backtrader as bt
 import pandas as pd
-import pytest
-# Create a Strategy
 from pyecharts.charts import Line, Bar
 
-from strategies import BollingStrategy_1_0, Bolling_2_0
+import config_reader
+from strategies import Bolling_2_0
 
 
 def dmy2ymd(dmy):
@@ -106,8 +104,8 @@ def run_Backtest(fromdate=None, todate=None):
 
     # cerebro.addstrategy(TestStrategy)
     # cerebro.addstrategy(BollingStrategy_1_0)
-    cerebro.addstrategy(Bolling_2_0)
 
+    cerebro.addstrategy(Bolling_2_0)
 
     cerebro.addobserver(bt.observers.DrawDown)
     cerebro.addobserver(bt.observers.TimeReturn)
@@ -149,7 +147,7 @@ def run_Backtest(fromdate=None, todate=None):
         # style = 'candlestick',
     )
 
-import config_reader
+
 if __name__ == '__main__':
     period_date = {
         'shudder': [((2015, 3, 15), (2018, 3, 15)), ((2011, 8, 29), (2013, 3, 14))],
@@ -165,9 +163,7 @@ if __name__ == '__main__':
     ConfigReader = config_reader.ConfigReader()
     print(ConfigReader.cash)
 
-
-
-    run_Backtest(fromdate2, todate2)
+    run_Backtest(fromdate1, todate1)
     # run_Backtest(fromdate2, todate2)
     # time.sleep(2)
     # run_Backtest(fromdate2, todate2)

@@ -83,6 +83,19 @@ class TripleFallenStrategy(bt.Strategy):
                 self.order = self.sell()
 
 
+def show_reason(func):
+    def wrapper(self):
+        pre_state = self.signal
+        func(self)
+        state = self.signal
+        if pre_state != state:
+            print(f'切换状态{pre_state}->{self.signal} 原因: {self.reason}')
+        else:
+            print(f'保持状态{self.signal}')
+
+    return wrapper
+
+
 class BollingStrategy_1_0(bt.Strategy):
     # 自定义参数，每次买入1手
     params = (('size', ConfigReader.size), ('maperiod', ConfigReader.moving), ('printlog', True))
@@ -149,31 +162,6 @@ class BollingStrategy_1_0(bt.Strategy):
         # Write down: no pending order
         self.order = None
 
-    def next_open(self):
-        print(f'每天现金{self.broker.getcash()}')
-        print(f'每天收盘{self.dataclose[0]}')
-        print(f'每天净值{self.broker.getvalue()}')
-        # 没有持仓
-        if not self.position:
-            if self.datalow <= self.lines.bot[0]:
-                # 执行买入
-                self.order = self.buy(size=self.params.size)
-                # self.order = self.buy(price=self.dataclose, size=self.params.size)
-                # return
-        # 有持仓
-        else:
-            if self.datalow <= self.lines.bot[0]:
-                # 执行买入
-                self.order = self.buy(size=self.params.size)
-                # self.order = self.buy(price=self.dataclose,size=self.params.size)
-                return
-
-            if self.datahigh > self.lines.mid[0] or self.datahigh > self.lines.top[0]:
-                # 执行卖出
-                # self.order = self.sell(size=self.params.size)
-                # 全部平仓
-                self.order = self.close()
-
     def next(self):
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
         # 没有持仓
@@ -204,6 +192,7 @@ class Bolling_2_0(BollingStrategy_1_0):
         super().__init__()
         # 持仓信号
         self.signal = False
+        self.reason = ''
 
     def normal_mode(self):
         if self.datalow <= self.lines.bot[0]:
@@ -220,19 +209,35 @@ class Bolling_2_0(BollingStrategy_1_0):
         self.order = self.buy(size=self.params.size)
         pass
 
+    def change_state(self, state):
+        def wrapper():
+            if self.signal != state:
+                self.signal = state
+                print('改变状态')
+            else:
+                print('保持状态')
+
+        return wrapper
+
+    @show_reason
     def choose_mode(self):
         # 1. 布林线喇叭开口
         now_boll_gap = self.lines.top - self.lines.bot
         pre_boll_gap = self.lines.top[-10] - self.lines.bot[-10]
         if now_boll_gap >= 1.5 * pre_boll_gap:
             self.signal = True
+            self.reason = '布林线喇叭开口'
+
         # 2. 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
             self.signal = True
+            self.reason = '高频触及上轨'
+
         # 1. 跌破中轨
         if self.datalow < self.lines.mid[0]:
             self.signal = False
+            self.reason = '跌破中轨'
             # self.order = self.close()
 
         # 2. 跌幅超过3%
@@ -241,20 +246,24 @@ class Bolling_2_0(BollingStrategy_1_0):
         print(f'scope{scope}')
         if scope < -0.03:
             self.signal = False
+            self.reason = '跌幅超过3'
+
         # 3. 布林线收口
         now_boll_gap = self.lines.top - self.lines.bot
         pre_boll_gap = self.lines.top[-5] - self.lines.bot[-5]
         if pre_boll_gap >= 1.5 * now_boll_gap:
             self.signal = False
+            self.reason = '布林线收口'
 
     def next(self):
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
         self.choose_mode()
 
-        # 持仓模式
         if self.signal:
             print('进入持仓模式')
+            print(f'reason{self.reason}')
             self.hold_mode()
         else:
             print('进入常规模式')
+            print(f'reason{self.reason}')
             self.normal_mode()
