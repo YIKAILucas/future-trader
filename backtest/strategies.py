@@ -1,6 +1,7 @@
 import backtrader as bt
 
 import config_reader
+from backtest.StateMachine import BaseMachine
 
 ConfigReader = config_reader.ConfigReader()
 
@@ -66,7 +67,6 @@ class TripleFallenStrategy(bt.Strategy):
                 if self.dataclose[-1] < self.dataclose[-2]:
                     # previous close less than the previous close
 
-                    # BUY, BUY, BUY!!! (with default parameters)
                     self.log('BUY CREATE, %.2f' % self.dataclose[0])
 
                     # Keep track of the created order to avoid a 2nd order
@@ -83,12 +83,16 @@ class TripleFallenStrategy(bt.Strategy):
                 self.order = self.sell()
 
 
-def show_reason(func):
+def show_reason_and_mode(func):
     def wrapper(self):
         pre_state = self.signal
         func(self)
         state = self.signal
         if pre_state != state:
+            if state is True:
+                self.state_machine.strategy_model.to_rise()
+            else:
+                self.state_machine.strategy_model.to_normal()
             print(f'切换状态{pre_state}->{self.signal} 原因: {self.reason}')
         else:
             print(f'保持状态{self.signal}')
@@ -190,24 +194,16 @@ class BollingStrategy_1_0(bt.Strategy):
 class Bolling_2_0(BollingStrategy_1_0):
     def __init__(self):
         super().__init__()
+
+        # TODO 初始状态机，考虑初始的位置放这里好不好
+        self.state_machine = BaseMachine()
+        self.s_model = self.state_machine.strategy_model
+        print(self.s_model.state)
+        # state_machine.strategy_model.to_rise()
+        # print(state_machine.strategy_model.state)
         # 持仓信号
         self.signal = False
         self.reason = ''
-
-    def normal_mode(self):
-        if self.datalow <= self.lines.bot[0]:
-            # 下轨买入
-            self.order = self.buy(size=self.params.size)
-            # 当天不会平仓
-            return
-        if self.datahigh > self.lines.top[0]:
-            # 上轨平仓
-            self.order = self.close()
-            return
-
-    def hold_mode(self):
-        self.order = self.buy(size=self.params.size)
-        pass
 
     def change_state(self, state):
         def wrapper():
@@ -219,26 +215,32 @@ class Bolling_2_0(BollingStrategy_1_0):
 
         return wrapper
 
-    @show_reason
-    def choose_mode(self):
+    @show_reason_and_mode
+    def choose_state(self):
         # 1. 布林线喇叭开口
         now_boll_gap = self.lines.top - self.lines.bot
         pre_boll_gap = self.lines.top[-10] - self.lines.bot[-10]
         if now_boll_gap >= 1.5 * pre_boll_gap:
             self.signal = True
             self.reason = '布林线喇叭开口'
+            if self.s_model.is_rise() is False:
+                self.s_model.to_rise()
 
         # 2. 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
             self.signal = True
             self.reason = '高频触及上轨'
+            if self.s_model.is_rise() is False:
+                print('torise')
+                self.s_model.to_rise()
 
         # 1. 跌破中轨
         if self.datalow < self.lines.mid[0]:
             self.signal = False
             self.reason = '跌破中轨'
-            # self.order = self.close()
+            if self.s_model.is_normal() is False:
+                self.s_model.to_normal()
 
         # 2. 跌幅超过3%
         # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
@@ -247,6 +249,8 @@ class Bolling_2_0(BollingStrategy_1_0):
         if scope < -0.03:
             self.signal = False
             self.reason = '跌幅超过3'
+            if self.s_model.is_normal() is False:
+                self.s_model.to_normal()
 
         # 3. 布林线收口
         now_boll_gap = self.lines.top - self.lines.bot
@@ -254,16 +258,55 @@ class Bolling_2_0(BollingStrategy_1_0):
         if pre_boll_gap >= 1.5 * now_boll_gap:
             self.signal = False
             self.reason = '布林线收口'
+            if self.s_model.is_normal() is False:
+                self.s_model.to_normal()
+
+        if self.down_in_10days():
+            if self.s_model.is_fall() is False:
+                print('进入fall')
+                self.s_model.to_fall()
+                print('关仓')
+                self.close()
+                print(self.position)
+            else:
+                print('已经是fall模式了')
+
+    def down_in_10days(self) -> bool:
+        count = 0
+        for i in range(0, -10, -1):
+            if self.datalow[i] <= self.lines.bot[i]:
+                count += 1
+        if count >= 3:
+            return True
+        else:
+            return False
+
+    def handle(self):
+        # 'normal', 'rise', 'fall', 'shudder', 'asleep'
+        if self.s_model.is_normal():
+            if self.datalow <= self.lines.bot[0]:
+                # 下轨买入
+                self.order = self.buy(size=self.params.size)
+            # 当天不会平仓
+            if self.datahigh > self.lines.top[0]:
+                # 上轨平仓
+                self.order = self.close()
+        elif self.s_model.is_rise():
+            self.order = self.buy(size=self.params.size)
+            """
+            下跌状态策略
+            """
+        elif self.s_model.is_fall():
+            # self.order = self.close()
+            self.order = self.sell(size=1)
+
+        elif self.s_model.is_shudder():
+            pass
+        elif self.s_model.is_asleep():
+            pass
 
     def next(self):
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
-        self.choose_mode()
+        self.choose_state()
 
-        if self.signal:
-            print('进入持仓模式')
-            print(f'reason{self.reason}')
-            self.hold_mode()
-        else:
-            print('进入常规模式')
-            print(f'reason{self.reason}')
-            self.normal_mode()
+        self.handle()

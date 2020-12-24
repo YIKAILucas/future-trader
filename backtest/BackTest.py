@@ -157,14 +157,16 @@ if __name__ == '__main__':
     }
     fromdate1 = period_date['rise'][0][0]
     todate1 = period_date['rise'][0][1]
-    fromdate2 = period_date['shudder'][1][0]
-    todate2 = period_date['shudder'][1][1]
-
+    fromdate2 = period_date['fall'][1][0]
+    todate2 = period_date['fall'][1][1]
+    fromdate3 = period_date['shudder'][1][0]
+    todate3 = period_date['shudder'][1][1]
     ConfigReader = config_reader.ConfigReader()
     print(ConfigReader.cash)
 
-    run_Backtest(fromdate1, todate1)
-    # run_Backtest(fromdate2, todate2)
+    # run_Backtest(fromdate3, todate3)
+    run_Backtest(fromdate2, todate2)
+    # run_Backtest(fromdate1, todate1)
     # time.sleep(2)
     # run_Backtest(fromdate2, todate2)
 
