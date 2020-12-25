@@ -17,8 +17,7 @@ class BaseStrategy(bt.Strategy):
         # print(f'self.lines.mid->{self.lines.mid[0]}---self.sma->{self.sma[0]}')
 
     def stop(self):
-        self.log('(MA Period %2d) Ending Value %.2f' %
-                 (self.params.maperiod, self.broker.getvalue()), doprint=True)
+        pass
 
     def notify_order(self, order):
         print(f'订单去向')
@@ -105,11 +104,11 @@ class BollingStrategy_1_0(BaseStrategy):
         self.buyprice = None
         self.buycomm = None
         ##使用自带的indicators中自带的函数计算出支撑线和压力线，period设置周期，默认是20
-        self.lines.top = bt.indicators.BollingerBands(self.datas[0], period=self.params.maperiod).top
-        self.lines.mid = bt.indicators.BollingerBands(self.datas[0], period=self.params.maperiod).mid
-        self.sma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.maperiod)
+        self.lines.top = bt.indicators.BollingerBands(self.datas[0], period=self.p.maperiod).top
+        self.lines.mid = bt.indicators.BollingerBands(self.datas[0], period=self.p.maperiod).mid
+        self.sma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.p.maperiod)
         # self.lines.ma = self.lines.ma
-        self.lines.bot = bt.indicators.BollingerBands(self.datas[0], period=self.params.maperiod).bot
+        self.lines.bot = bt.indicators.BollingerBands(self.datas[0], period=self.p.maperiod).bot
         # 指标
         # bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
         # bt.indicators.WeightedMovingAverage(self.datas[0], period=25,
@@ -269,3 +268,43 @@ class Bolling_2_0(BollingStrategy_1_0):
         self.choose_state()
         print(f'当日切换次数{self.s_model.a}')
         self.handle()
+
+
+class DoubleMA(BaseStrategy):
+    params = (('s_window', ConfigReader.s_window), ('l_window', ConfigReader.l_window), ('printlog', True))
+
+    def __init__(self):
+        super().__init__()
+        self.short_ma = bt.indicators.SMA(self.datas[0].close, period=self.params.s_window)
+        self.long_ma = bt.indicators.SMA(self.datas[0].close, period=self.p.l_window)
+
+    def next(self):
+        size = self.getposition(self.datas[0]).size
+        # 做多
+        if self.short_ma[-1] < self.long_ma[-1] and self.short_ma[0] > self.long_ma[0]:
+            # 开仓
+            # self.order_target_value(self.datas[0], target=50000)
+            self.buy(size=1)
+        # 平多
+        if self.short_ma[-1] > self.long_ma[-1] and self.short_ma[0] < self.long_ma[0]:
+            self.close(self.datas[0])
+
+
+class MACD_Strategy(BaseStrategy):
+    params = (('p1', 12), ('p2', 26), ('p3', 9), ('size', ConfigReader.size), ('maperiod', ConfigReader.moving),
+              ('printlog', True))
+
+    def __init__(self):
+        super().__init__()
+        ema = bt.ind.EMA(self.data, period=self.p.maperiod)
+        self.macdhist = bt.ind.MACDHisto(self.data,
+                                         period_me1=self.p.p1,
+                                         period_me2=self.p.p2,
+                                         period_signal=self.p.p3)
+
+    def next(self):
+        # 当MACD柱大于0（红柱）且无持仓时满仓买入
+        if self.macdhist > 0:
+            self.order = self.buy(size=1)
+        else:
+            self.close()

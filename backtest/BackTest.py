@@ -11,7 +11,7 @@ import pandas as pd
 from pyecharts.charts import Line, Bar
 
 import config_reader
-from strategies import Bolling_2_0
+from strategies import Bolling_2_0, DoubleMA, BollingStrategy_1_0, MACD_Strategy
 
 
 def dmy2ymd(dmy):
@@ -47,7 +47,7 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
     return p
 
 
-def run_Backtest(fromdate=None, todate=None):
+def run_Backtest(strategy=None, fromdate=None, todate=None):
     # 注意+-，这里最后的pandas要符合backtrader的要求的格式
     dataframe = pd.read_csv('./backtest/boll.csv', encoding='utf-8_sig', parse_dates=True)
     dataframe.dropna()
@@ -105,7 +105,7 @@ def run_Backtest(fromdate=None, todate=None):
     # cerebro.addstrategy(TestStrategy)
     # cerebro.addstrategy(BollingStrategy_1_0)
 
-    cerebro.addstrategy(Bolling_2_0)
+    cerebro.addstrategy(strategy)
 
     cerebro.addobserver(bt.observers.DrawDown)
     cerebro.addobserver(bt.observers.TimeReturn)
@@ -164,9 +164,9 @@ if __name__ == '__main__':
     ConfigReader = config_reader.ConfigReader()
     print(ConfigReader.cash)
 
-    # run_Backtest(fromdate3, todate3)
-    run_Backtest(fromdate2, todate2)
-    # run_Backtest(fromdate1, todate1)
+    # run_Backtest(MACD_Strategy,fromdate3, todate3)
+    run_Backtest(MACD_Strategy, fromdate2, todate2)
+    # run_Backtest(MACD_Strategy,fromdate1, todate1)
     # time.sleep(2)
     # run_Backtest(fromdate2, todate2)
 

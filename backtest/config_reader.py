@@ -42,4 +42,6 @@ class ConfigReader(object):
         self.moving = config.getint('strategy', 'moving')
         self.cash = config.getint('init', 'cash')
         self.size = config.getint('trade', 'size')
-        self.is_close = config.getboolean('strategy', 'close')
+
+        self.s_window = config.getint('DoubleMA', 'short_window')
+        self.l_window = config.getint('DoubleMA', 'long_window')
