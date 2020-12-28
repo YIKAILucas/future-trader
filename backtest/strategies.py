@@ -48,11 +48,16 @@ class BaseStrategy(bt.Strategy):
         self.dataclose = self.datas[0].close
         self.order = None
 
+    def init_model(self):
+        self.state_machine = BaseMachine()
+        self.s_model = self.state_machine.strategy_model
+        self.reason = ''
+        print(self.s_model.state)
+
     def next(self):
         # self.s_model.count = 0
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
         self.choose_state()
-        # print(f'当日切换次数{self.s_model.count}')
         self.handle()
 
     @abstractmethod
@@ -62,6 +67,15 @@ class BaseStrategy(bt.Strategy):
     @abstractmethod
     def handle(self):
         pass
+
+    def state_enter_callback(self):
+        print(f'进入{self.s_model.state} 原因->{self.reason}')
+        if self.s_model.state == 'fall' or self.prev == 'fall':
+            self.my_close()
+
+    def state_exit_callback(self):
+        print(f'退出{self.s_model.state}', end=' ')
+        self.prev = self.s_model.state
 
 
 class TripleFallenStrategy(BaseStrategy):
@@ -168,7 +182,6 @@ class BollingStrategy_1_0(BaseStrategy):
 
 
 class Bolling_2_0(BollingStrategy_1_0):
-
     def my_close(self):
         print('关仓')
         self.close()
@@ -176,11 +189,8 @@ class Bolling_2_0(BollingStrategy_1_0):
     def __init__(self):
         super().__init__()
         self.change_count = 0
-
         # 初始状态机
-        self.state_machine = BaseMachine()
-        self.s_model = self.state_machine.strategy_model
-        print(self.s_model.state)
+        self.init_model()
         # 持仓信号
         self.reason = ''
 
@@ -201,20 +211,20 @@ class Bolling_2_0(BollingStrategy_1_0):
         if now_boll_gap >= 1.5 * pre_boll_gap:
             self.reason = '布林线喇叭开口'
             if self.s_model.is_rise() is False:
-                self.s_model.to_rise(self.reason, bt=self)
+                self.s_model.to_rise(bt=self)
 
         # 2. 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
             self.reason = '高频触及上轨'
             if self.s_model.is_rise() is False:
-                self.s_model.to_rise(self.reason, bt=self)
+                self.s_model.to_rise(bt=self)
 
         # 1. 跌破中轨
         if self.datalow < self.lines.mid[0]:
             self.reason = '跌破中轨'
             if self.s_model.is_normal() is False:
-                self.s_model.to_normal(self.reason, bt=self)
+                self.s_model.to_normal(bt=self)
 
         # 2. 跌幅超过3%
         # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
@@ -222,7 +232,7 @@ class Bolling_2_0(BollingStrategy_1_0):
         if scope < -0.03:
             self.reason = '跌幅超过3'
             if self.s_model.is_normal() is False:
-                self.s_model.to_normal(self.reason, bt=self)
+                self.s_model.to_normal(bt=self)
 
         # 3. 布林线收口
         now_boll_gap = self.lines.top - self.lines.bot
@@ -230,11 +240,11 @@ class Bolling_2_0(BollingStrategy_1_0):
         if pre_boll_gap >= 1.5 * now_boll_gap:
             self.reason = '布林线收口'
             if self.s_model.is_normal() is False:
-                self.s_model.to_normal(self.reason, bt=self)
+                self.s_model.to_normal(bt=self)
 
         if self.down_in_10days():
             if self.s_model.is_fall() is False:
-                self.s_model.to_fall(reason=self.reason, bt=self)
+                self.s_model.to_fall(bt=self)
                 # my_close(self)
             else:
                 print('已经是fall模式了')

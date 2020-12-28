@@ -19,15 +19,11 @@ class BaseModel(object):
     def print_self(self):
         print(id(self))
 
-    def on_exit(self, reason, bt):
-        print(f'退出{self.state}', end=' ')
-        self.prev = self.state
+    def on_exit(self, bt):
+        bt.state_exit_callback()
 
-    def on_enter(self, reason, bt):
-        self.count += 1
-        print(f'进入{self.state} 原因->{reason}', end=' ')
-        if self.state == 'fall' or self.prev == 'fall':
-            bt.my_close()
+    def on_enter(self, bt):
+        bt.state_enter_callback()
 
 
 @singleton
