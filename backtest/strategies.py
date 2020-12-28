@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import backtrader as bt
 
 import config_reader
@@ -47,6 +49,18 @@ class BaseStrategy(bt.Strategy):
         self.order = None
 
     def next(self):
+        # self.s_model.count = 0
+        print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
+        self.choose_state()
+        # print(f'当日切换次数{self.s_model.count}')
+        self.handle()
+
+    @abstractmethod
+    def choose_state(self):
+        pass
+
+    @abstractmethod
+    def handle(self):
         pass
 
 
@@ -57,7 +71,7 @@ class TripleFallenStrategy(BaseStrategy):
     def notify(self, order):
         super().__init__()
 
-    def next(self):
+    def handle(self):
         # Simply log the closing price of the series from the reference
         self.log('Close, %.2f' % self.dataclose[0])
 
@@ -89,6 +103,9 @@ class TripleFallenStrategy(BaseStrategy):
 
                 # Keep track of the created order to avoid a 2nd order
                 self.order = self.sell()
+
+    def choose_state(self):
+        pass
 
 
 class BollingStrategy_1_0(BaseStrategy):
@@ -122,7 +139,7 @@ class BollingStrategy_1_0(BaseStrategy):
         # bt.indicators.MaxDrawDown(self.datas[0])
         # self.lines.bot = bt.indicators.
 
-    def next(self):
+    def handle(self):
         print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
         # 没有持仓
         if not self.position:
@@ -145,6 +162,9 @@ class BollingStrategy_1_0(BaseStrategy):
                 # self.order = self.sell(size=self.params.size)
                 # 全部平仓
                 self.order = self.close()
+
+    def choose_state(self):
+        pass
 
 
 class Bolling_2_0(BollingStrategy_1_0):
@@ -256,55 +276,72 @@ class Bolling_2_0(BollingStrategy_1_0):
             self.order = self.buy(size=self.params.size)
         elif self.s_model.is_fall():
             self.order = self.sell(size=1)
-
         elif self.s_model.is_shudder():
             pass
         elif self.s_model.is_asleep():
             pass
 
     def next(self):
-        self.s_model.a = 0
-        print(f'每天现金{self.broker.getcash()}  每天收盘{self.dataclose[0]}  每天净值{self.broker.getvalue()}')
-        self.choose_state()
-        print(f'当日切换次数{self.s_model.a}')
-        self.handle()
+        super(Bolling_2_0, self).next()
 
 
 class DoubleMA(BaseStrategy):
-    params = (('s_window', ConfigReader.s_window), ('l_window', ConfigReader.l_window), ('printlog', True))
+    params = (('s_window', ConfigReader.short_window), ('l_window', ConfigReader.long_window), ('printlog', True))
 
     def __init__(self):
         super().__init__()
         self.short_ma = bt.indicators.SMA(self.datas[0].close, period=self.params.s_window)
         self.long_ma = bt.indicators.SMA(self.datas[0].close, period=self.p.l_window)
 
-    def next(self):
+    def choose_state(self):
+        pass
+
+    def handle(self):
         size = self.getposition(self.datas[0]).size
         # 做多
         if self.short_ma[-1] < self.long_ma[-1] and self.short_ma[0] > self.long_ma[0]:
             # 开仓
             # self.order_target_value(self.datas[0], target=50000)
             self.buy(size=1)
-        # 平多
+            # 平多
         if self.short_ma[-1] > self.long_ma[-1] and self.short_ma[0] < self.long_ma[0]:
             self.close(self.datas[0])
 
 
 class MACD_Strategy(BaseStrategy):
-    params = (('p1', 12), ('p2', 26), ('p3', 9), ('size', ConfigReader.size), ('maperiod', ConfigReader.moving),
+    """
+    MACD 策略
+    """
+    params = (('p1', 12), ('p2', 26), ('size', ConfigReader.size), ('maperiod', ConfigReader.moving),
               ('printlog', True))
 
     def __init__(self):
         super().__init__()
-        ema = bt.ind.EMA(self.data, period=self.p.maperiod)
-        self.macdhist = bt.ind.MACDHisto(self.data,
-                                         period_me1=self.p.p1,
-                                         period_me2=self.p.p2,
-                                         period_signal=self.p.p3)
+        self.ema = bt.ind.EMA(self.data, period=self.p.p1, )
+        self.lines.macdhist = bt.ind.MACDHisto(self.dataclose,
+                                               period_me1=self.p.p1,
+                                               period_me2=self.p.p2,
+                                               )
 
-    def next(self):
-        # 当MACD柱大于0（红柱）且无持仓时满仓买入
-        if self.macdhist > 0:
-            self.order = self.buy(size=1)
+        self.signal = self.lines.macdhist - self.lines.macdhist.lines.histo
+
+    def choose_state(self):
+        pass
+
+    def handle(self):
+        # 当MACD柱大于0（红柱）时买入
+        # print(f'fuck {self.lines.macdhist[0] - self.signal[0]}')
+        # print(f'fuck {self.signal[0]}')
+        if self.lines.macdhist[0] < 0:
+            # if self.lines.macdhist[0] - self.signal[0] < 0:
+            # self.order = self.buy(size=1)
+            self.order = self.sell(size=1)
         else:
             self.close()
+
+        #
+        # if self.macdhist[0] > 0:
+        #     self.order = self.buy(size=1)
+        #     print('买入')
+        # else:
+        #     self.close()

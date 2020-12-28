@@ -165,6 +165,7 @@ if __name__ == '__main__':
     print(ConfigReader.cash)
 
     # run_Backtest(MACD_Strategy,fromdate3, todate3)
+    # run_Backtest(ConfigReader.choose_strategy, fromdate2, todate2)
     run_Backtest(MACD_Strategy, fromdate2, todate2)
     # run_Backtest(MACD_Strategy,fromdate1, todate1)
     # time.sleep(2)

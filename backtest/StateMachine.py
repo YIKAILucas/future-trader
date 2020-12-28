@@ -10,10 +10,10 @@ from backtest.config_reader import singleton
 
 
 @singleton
-class Matter(object):
+class BaseModel(object):
     def __init__(self):
         self.reason = ''
-        self.a = 0
+        self.count = 0
         self.prev = ''
 
     def print_self(self):
@@ -24,13 +24,10 @@ class Matter(object):
         self.prev = self.state
 
     def on_enter(self, reason, bt):
-        self.a += 1
-        print(f'进入{self.state}', end=' ')
-        print(f'原因->{reason}')
-        if self.state == 'fall':
+        self.count += 1
+        print(f'进入{self.state} 原因->{reason}', end=' ')
+        if self.state == 'fall' or self.prev == 'fall':
             bt.my_close()
-
-        self.prev = ''
 
 
 @singleton
@@ -58,7 +55,7 @@ class BaseMachine(object):
         pass
 
     def __init__(self):
-        self._strategy_model = Matter()
+        self._strategy_model = BaseModel()
         self._strategy_machine = Machine(model=self._strategy_model, states=self.strategy_states,
                                          initial='normal', before_state_change='on_exit',
                                          after_state_change='on_enter', auto_transitions=True)
@@ -81,7 +78,7 @@ class RiskMachine(object):
 
 if __name__ == '__main__':
     state_machine = BaseMachine()
-    print(state_machine.strategy_model.a)
+    print(state_machine.strategy_model.count)
     print(state_machine.strategy_model.state)
     state_machine.strategy_model.to_rise()
     print(state_machine.strategy_model.state)

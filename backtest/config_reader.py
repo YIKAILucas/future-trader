@@ -38,10 +38,20 @@ class ConfigReader(object):
     def load_config(self):
         config = ConfigParser()
         config.read('./backtest/config.ini')
-        self.con_list = config.sections()
-        self.moving = config.getint('strategy', 'moving')
-        self.cash = config.getint('init', 'cash')
-        self.size = config.getint('trade', 'size')
+        sections = config.sections()
+        for sec in sections:
+            print(sec)
+            for item in config.items(sec):
+                exec(f'self.{item[0]}={item[1]}')
 
-        self.s_window = config.getint('DoubleMA', 'short_window')
-        self.l_window = config.getint('DoubleMA', 'long_window')
+
+if __name__ == '__main__':
+    config = ConfigParser()
+    config.read('./config.ini')
+
+    sections = config.sections()
+    for sec in sections:
+        print(sec)
+        for i in config.items(sec):
+            print(i)
+            exec(f'{i[0]}={i[1]}')
