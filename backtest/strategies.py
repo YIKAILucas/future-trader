@@ -4,7 +4,7 @@ import backtrader as bt
 
 import config_reader
 from backtest.Mydecorator import show_reason_and_mode
-from backtest.StateMachine import BaseMachine
+from backtest.state_machine import BaseMachine
 
 ConfigReader = config_reader.ConfigReader()
 
@@ -52,7 +52,12 @@ class BaseStrategy(bt.Strategy):
         self.state_machine = BaseMachine()
         self.s_model = self.state_machine.strategy_model
         self.reason = ''
+        self.prev = ''
         print(self.s_model.state)
+
+    def my_close(self):
+        print('关仓')
+        self.close()
 
     def next(self):
         # self.s_model.count = 0
@@ -71,7 +76,7 @@ class BaseStrategy(bt.Strategy):
     def state_enter_callback(self):
         print(f'进入{self.s_model.state} 原因->{self.reason}')
         if self.s_model.state == 'fall' or self.prev == 'fall':
-            self.my_close()
+            self.close()
 
     def state_exit_callback(self):
         print(f'退出{self.s_model.state}', end=' ')
@@ -182,10 +187,6 @@ class BollingStrategy_1_0(BaseStrategy):
 
 
 class Bolling_2_0(BollingStrategy_1_0):
-    def my_close(self):
-        print('关仓')
-        self.close()
-
     def __init__(self):
         super().__init__()
         self.change_count = 0
@@ -334,22 +335,33 @@ class MACD_Strategy(BaseStrategy):
                                                )
 
         self.signal = self.lines.macdhist - self.lines.macdhist.lines.histo
+        super().init_model()
 
     def choose_state(self):
-        pass
+        if self.lines.macdhist[0] < 0:
+            if self.s_model.is_fall() is False:
+                self.s_model.to_fall(self)
+        else:
+            if self.s_model.is_normal() is False:
+                self.s_model.to_normal(self)
 
     def handle(self):
         # 当MACD柱大于0（红柱）时买入
         # print(f'fuck {self.lines.macdhist[0] - self.signal[0]}')
         # print(f'fuck {self.signal[0]}')
-        if self.lines.macdhist[0] < 0:
-            # if self.lines.macdhist[0] - self.signal[0] < 0:
-            # self.order = self.buy(size=1)
-            self.order = self.sell(size=1)
-        else:
-            self.close()
+        if self.s_model.is_normal():
+            if self.lines.macdhist[0] > 0:
+                # if self.lines.macdhist[0] - self.signal[0] < 0:
+                self.order = self.buy(size=1)
+            else:
+                self.close()
+        elif self.s_model.is_fall():
+            if self.lines.macdhist[0] < 0:
+                # if self.lines.macdhist[0] - self.signal[0] < 0:
+                self.order = self.sell(size=1)
+            else:
+                self.close()
 
-        #
         # if self.macdhist[0] > 0:
         #     self.order = self.buy(size=1)
         #     print('买入')
