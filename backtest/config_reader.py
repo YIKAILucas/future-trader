@@ -7,6 +7,8 @@
 import functools
 from configparser import ConfigParser
 
+from path import ROOT_DIR
+
 
 def singleton(cls):
     cls.__new_original__ = cls.__new__
@@ -37,17 +39,17 @@ class ConfigReader(object):
 
     def load_config(self):
         config = ConfigParser()
-        config.read('./backtest/config.ini')
+        config.read(ROOT_DIR + '/config.ini')
         sections = config.sections()
         for sec in sections:
             print(sec)
             for item in config.items(sec):
-                exec(f'self.{item[0]}={item[1]}')
+                exec(f'self.{sec}_{item[0]}={item[1]}')
 
 
 if __name__ == '__main__':
     config = ConfigParser()
-    config.read('./config.ini')
+    config.read(ROOT_DIR + '/config.ini')
 
     sections = config.sections()
     for sec in sections:

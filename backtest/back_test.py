@@ -8,16 +8,15 @@ import sys
 
 import backtrader as bt
 import pandas as pd
-from pyecharts.charts import Line, Bar
+from pyecharts import options as opts
+from pyecharts.charts import Kline, Line, Bar
 
 import config_reader
-from strategies import Bolling_2_0, DoubleMA, BollingStrategy_1_0, MACD_Strategy
-from pyecharts import options as opts
-from pyecharts.commons.utils import JsCode
-from pyecharts.charts import Kline, Line, Bar, Grid
+from path import ROOT_DIR
+from strategies import MACD_Strategy
 
 
-def kline(data,date):
+def kline(data, date):
     kline = (
         Kline()
             .add_xaxis(xaxis_data=date)
@@ -117,7 +116,7 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
 
 def run_Backtest(strategy=None, fromdate=None, todate=None):
     # 注意+-，这里最后的pandas要符合backtrader的要求的格式
-    dataframe = pd.read_csv('./backtest/boll.csv', encoding='utf-8_sig', parse_dates=True)
+    dataframe = pd.read_csv(ROOT_DIR + '/boll.csv', encoding='utf-8_sig', parse_dates=True)
     dataframe.dropna()
     trans_date = [dmy2ymd(d) for d in dataframe['日期']]
 
@@ -178,7 +177,7 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
 
     cerebro.adddata(data1)
-    cash = ConfigReader.cash
+    cash = ConfigReader.init_cash
     cerebro.broker.setcash(cash)
 
     cerebro.broker.setcommission(commission=0.0, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
@@ -211,12 +210,14 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     # print(dataframe.head())
     # kline(dataframe,trans_date)
 
+
 if __name__ == '__main__':
     period_date = {
         'shudder': [((2015, 3, 15), (2018, 3, 15)), ((2011, 8, 29), (2013, 3, 14))],
         'rise': [((2008, 12, 1), (2010, 12, 1)), ((2018, 5, 10), (2018, 6, 1)),
                  ((2016, 4, 1), (2016, 7, 13))],
-        'fall': [((2011, 3, 14), (2011, 8, 12)), ((2014, 3, 20), (2016, 4, 1))]
+        'fall': [((2011, 3, 14), (2011, 8, 12)), ((2014, 3, 20), (2016, 4, 1))],
+        'total': [((2004, 4, 1), (2020, 1, 1))]
     }
     fromdate1 = period_date['rise'][0][0]
     todate1 = period_date['rise'][0][1]
@@ -224,11 +225,11 @@ if __name__ == '__main__':
     todate2 = period_date['fall'][1][1]
     fromdate3 = period_date['shudder'][1][0]
     todate3 = period_date['shudder'][1][1]
+    total1 = period_date['total'][0][0]
+    total2 = period_date['total'][0][1]
     ConfigReader = config_reader.ConfigReader()
-    print(ConfigReader.cash)
-
     # run_Backtest(ConfigReader.choose_strategy, fromdate2, todate2)
-    run_Backtest(MACD_Strategy,fromdate3, todate3)
+    run_Backtest(MACD_Strategy, fromdate1, todate1)
     # run_Backtest(MACD_Strategy, fromdate2, todate2)
     # run_Backtest(Bolling_2_0, fromdate2, todate2)
     # run_Backtest(MACD_Strategy,fromdate1, todate1)

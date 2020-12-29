@@ -129,7 +129,7 @@ class TripleFallenStrategy(BaseStrategy):
 
 class BollingStrategy_1_0(BaseStrategy):
     # 自定义参数，每次买入1手
-    params = (('size', ConfigReader.size), ('maperiod', ConfigReader.moving), ('printlog', True))
+    params = (('size', ConfigReader.trade_size), ('maperiod', ConfigReader.Boll_moving), ('printlog', True))
 
     def __init__(self):
         super().__init__()
@@ -209,39 +209,44 @@ class Bolling_2_0(BollingStrategy_1_0):
         # 1. 布林线喇叭开口
         now_boll_gap = self.lines.top - self.lines.bot
         pre_boll_gap = self.lines.top[-10] - self.lines.bot[-10]
-        if now_boll_gap >= 1.5 * pre_boll_gap:
-            self.reason = '布林线喇叭开口'
+        if now_boll_gap >= 1.5 * pre_boll_gap and self.dataclose < self.lines.mid[0]:
+            self.reason = '布林线喇叭开口,且低于中轨'
             if self.s_model.is_rise() is False:
                 self.s_model.to_rise(bt=self)
+                return
 
-        # 2. 高频触及上轨
+                # 2. 高频触及上轨
         if self.dataclose > self.lines.top[0] and self.dataclose[-1] > self.lines.top[-1] and self.dataclose[-2] > \
                 self.lines.top[-2]:
-            self.reason = '高频触及上轨'
+            self.reason = '高频3次触及上轨'
             if self.s_model.is_rise() is False:
                 self.s_model.to_rise(bt=self)
+                return
 
-        # 1. 跌破中轨
+                # 1. 跌破中轨
         if self.datalow < self.lines.mid[0]:
             self.reason = '跌破中轨'
             if self.s_model.is_normal() is False:
                 self.s_model.to_normal(bt=self)
+                return
 
-        # 2. 跌幅超过3%
+                # 2. 跌幅超过3%
         # (现价-上一个交易日收盘价）/上一个交易日收盘价*100%
         scope = (self.dataclose - self.dataclose[-1]) / self.dataclose[-1]
         if scope < -0.03:
             self.reason = '跌幅超过3'
             if self.s_model.is_normal() is False:
                 self.s_model.to_normal(bt=self)
+                return
 
-        # 3. 布林线收口
+                # 3. 布林线收口
         now_boll_gap = self.lines.top - self.lines.bot
         pre_boll_gap = self.lines.top[-5] - self.lines.bot[-5]
         if pre_boll_gap >= 1.5 * now_boll_gap:
             self.reason = '布林线收口'
             if self.s_model.is_normal() is False:
                 self.s_model.to_normal(bt=self)
+                return
 
         if self.down_in_10days():
             if self.s_model.is_fall() is False:
@@ -249,55 +254,59 @@ class Bolling_2_0(BollingStrategy_1_0):
                 # my_close(self)
             else:
                 print('已经是fall模式了')
+            return
 
-    def down_in_10days(self) -> bool:
-        count = 0
-        for i in range(0, -10, -1):
-            if self.datalow[i] <= self.lines.bot[i]:
-                count += 1
-        if count >= 3:
-            return True
-        else:
-            return False
 
-    def handle(self):
-        """
-        不同状态不同交易策略 'normal', 'rise', 'fall', 'shudder', 'asleep'
-        normal状态
-        1. 下轨买入
-        2. 上轨平仓
-        3. 当天不会平仓
-        
-        rise状态
-        1. 每天买进1手
+def down_in_10days(self) -> bool:
+    count = 0
+    for i in range(0, -10, -1):
+        if self.datalow[i] <= self.lines.bot[i]:
+            count += 1
+    if count >= 3:
+        return True
+    else:
+        return False
 
-        fall状态
-        1. 平仓，每天卖一手空单
-        """
 
-        if self.s_model.is_normal():
-            if self.datalow <= self.lines.bot[0]:
-                self.order = self.buy(size=self.params.size)
-                return
-            if self.datahigh > self.lines.top[0]:
-                self.order = self.close()
-                return
+def handle(self):
+    """
+    不同状态不同交易策略 'normal', 'rise', 'fall', 'shudder', 'asleep'
+    normal状态
+    1. 下轨买入
+    2. 上轨平仓
+    3. 当天不会平仓
 
-        elif self.s_model.is_rise():
+    rise状态
+    1. 每天买进1手
+
+    fall状态
+    1. 平仓，每天卖一手空单
+    """
+
+    if self.s_model.is_normal():
+        if self.datalow <= self.lines.bot[0]:
             self.order = self.buy(size=self.params.size)
-        elif self.s_model.is_fall():
-            self.order = self.sell(size=1)
-        elif self.s_model.is_shudder():
-            pass
-        elif self.s_model.is_asleep():
-            pass
+            return
+        if self.datahigh > self.lines.top[0]:
+            self.order = self.close()
+            return
 
-    def next(self):
-        super(Bolling_2_0, self).next()
+    elif self.s_model.is_rise():
+        self.order = self.buy(size=self.params.size)
+    elif self.s_model.is_fall():
+        self.order = self.sell(size=1)
+    elif self.s_model.is_shudder():
+        pass
+    elif self.s_model.is_asleep():
+        pass
+
+
+def next(self):
+    super(Bolling_2_0, self).next()
 
 
 class DoubleMA(BaseStrategy):
-    params = (('s_window', ConfigReader.short_window), ('l_window', ConfigReader.long_window), ('printlog', True))
+    params = (('s_window', ConfigReader.DoubleMA_short_window), ('l_window', ConfigReader.DoubleMA_long_window), ('printlog', True))
 
     def __init__(self):
         super().__init__()
@@ -323,7 +332,7 @@ class MACD_Strategy(BaseStrategy):
     """
     MACD 策略
     """
-    params = (('p1', 12), ('p2', 26), ('size', ConfigReader.size), ('maperiod', ConfigReader.moving),
+    params = (('p1', 12), ('p2', 26), ('size', ConfigReader.trade_size),
               ('printlog', True))
 
     def __init__(self):
