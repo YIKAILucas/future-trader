@@ -4,6 +4,8 @@
 # @Date   : 2020/12/24 9:28 am
 # @Last Modified by:  Lucas
 # @Last Modified time:
+from queue import PriorityQueue
+
 from transitions import Machine
 
 from backtest.config_reader import singleton
@@ -21,9 +23,11 @@ class BaseModel(object):
 
     def on_exit(self, bt):
         bt.state_exit_callback()
+        # pass
 
     def on_enter(self, bt):
         bt.state_enter_callback()
+        pass
 
 
 @singleton
@@ -31,7 +35,29 @@ class BaseMachine(object):
     """
     策略状态机
     """
-    strategy_states = ['normal', 'rise', 'fall', 'shudder', 'asleep']
+    strategy_states = [(1, 'normal'), (2, 'rise'), (3, 'fall'), (4, 'shudder'), (5, 'asleep')]
+
+    def get_state(self):
+        state_l = []
+        for i in self.strategy_states:
+            state_l.append(i[1])
+        return state_l
+        pass
+
+    def add_queue(self, state):
+        self.q.put_nowait(state)
+
+    def get_item(self):
+        next_item = None
+        if not self.q.empty():
+            next_item = self.q.get_nowait()
+            print(f'pop出的状态{next_item}')
+            self.q.task_done()
+        # clear queue
+        while not self.q.empty():
+            self.q.get_nowait()
+
+        return next_item
 
     # matter = None
     @property
@@ -52,7 +78,8 @@ class BaseMachine(object):
 
     def __init__(self):
         self._strategy_model = BaseModel()
-        self._strategy_machine = Machine(model=self._strategy_model, states=self.strategy_states,
+        self.q = PriorityQueue()
+        self._strategy_machine = Machine(model=self._strategy_model, states=self.get_state(),
                                          initial='normal', before_state_change='on_exit',
                                          after_state_change='on_enter', auto_transitions=True)
         # self._strategy_machine.add_transition('to_normal', '*', 'normal')
@@ -74,10 +101,11 @@ class RiskMachine(object):
 
 if __name__ == '__main__':
     state_machine = BaseMachine()
-    print(state_machine.strategy_model.count)
     print(state_machine.strategy_model.state)
     state_machine.strategy_model.to_rise()
     print(state_machine.strategy_model.state)
+    state_machine.next_state()
+
     #
     # # Test
     # print(matter.state)  # solid

@@ -211,8 +211,10 @@ class Bolling_2_0(BollingStrategy_1_0):
         pre_boll_gap = self.lines.top[-10] - self.lines.bot[-10]
         if now_boll_gap >= 1.5 * pre_boll_gap and self.dataclose < self.lines.mid[0]:
             self.reason = '布林线喇叭开口,且低于中轨'
-            if self.s_model.is_rise() is False:
+            if not self.s_model.is_rise():
                 self.s_model.to_rise(bt=self)
+
+                self.state_machine.add_queue('rise')
                 return
 
                 # 2. 高频触及上轨
@@ -306,7 +308,8 @@ def next(self):
 
 
 class DoubleMA(BaseStrategy):
-    params = (('s_window', ConfigReader.DoubleMA_short_window), ('l_window', ConfigReader.DoubleMA_long_window), ('printlog', True))
+    params = (('s_window', ConfigReader.DoubleMA_short_window), ('l_window', ConfigReader.DoubleMA_long_window),
+              ('printlog', True))
 
     def __init__(self):
         super().__init__()
