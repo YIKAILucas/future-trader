@@ -37,6 +37,12 @@ class BaseMachine(object):
     """
     strategy_states = [(1, 'normal'), (2, 'rise'), (3, 'fall'), (4, 'shudder'), (5, 'asleep')]
 
+    def to_normal(self):
+        self.strategy_model.to_normal()
+
+        pass
+
+
     def get_state(self):
         state_l = []
         for i in self.strategy_states:
@@ -44,19 +50,17 @@ class BaseMachine(object):
         return state_l
         pass
 
-    def add_queue(self, state):
+    def add_state(self, state):
         self.q.put_nowait(state)
 
-    def get_item(self):
+    def get_next_state(self):
         next_item = None
         if not self.q.empty():
             next_item = self.q.get_nowait()
             print(f'pop出的状态{next_item}')
             self.q.task_done()
         # clear queue
-        while not self.q.empty():
-            self.q.get_nowait()
-
+        self.q.queue.clear()
         return next_item
 
     # matter = None

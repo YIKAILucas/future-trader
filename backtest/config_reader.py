@@ -45,6 +45,7 @@ class ConfigReader(object):
             print(sec)
             for item in config.items(sec):
                 exec(f'self.{sec}_{item[0]}={item[1]}')
+        # exec(f'self.strategy={self.init_choose_strategy}')
 
 
 if __name__ == '__main__':

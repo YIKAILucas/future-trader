@@ -10,6 +10,8 @@ ConfigReader = config_reader.ConfigReader()
 
 
 class BaseStrategy(bt.Strategy):
+    params = (('size', ConfigReader.trade_size), ('printlog', True))
+
     def log(self, txt, dt=None, doprint=False):
         ''' Logging function fot this strategy'''
         if self.params.printlog or doprint:
@@ -25,6 +27,7 @@ class BaseStrategy(bt.Strategy):
         print(f'订单去向')
 
     def notify(self, order):
+
         if order.status in [order.Submitted, order.Accepted]:
             # Buy/Sell order submitted/accepted to/by broker - Nothing to do
             return
@@ -34,8 +37,10 @@ class BaseStrategy(bt.Strategy):
         if order.status in [order.Completed, order.Canceled, order.Margin]:
             if order.isbuy():
                 self.log('BUY EXECUTED, %.2f' % order.executed.price)
+
             elif order.issell():
                 self.log('SELL EXECUTED, %.2f' % order.executed.price)
+            print(f'手续费{order.executed.comm}')
 
             self.bar_executed = len(self)
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
@@ -44,6 +49,7 @@ class BaseStrategy(bt.Strategy):
         # Write down: no pending order
         self.order = None
 
+    @abstractmethod
     def __init__(self):
         self.dataclose = self.datas[0].close
         self.order = None
@@ -214,7 +220,7 @@ class Bolling_2_0(BollingStrategy_1_0):
             if not self.s_model.is_rise():
                 self.s_model.to_rise(bt=self)
 
-                self.state_machine.add_queue('rise')
+                self.state_machine.add_state('rise')
                 return
 
                 # 2. 高频触及上轨
@@ -379,3 +385,42 @@ class MACD_Strategy(BaseStrategy):
         #     print('买入')
         # else:
         #     self.close()
+
+
+class MA_1_0(BaseStrategy):
+    def choose_state(self):
+        pass
+
+    def __init__(self):
+        super(MA_1_0, self).__init__()
+        self.sma_5 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_5)
+        self.sma_10 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_10)
+        self.sma_20 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_20)
+        self.sma_40 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_40)
+        # self.sma_60 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_60)
+
+    def handle(self):
+        print(f'第一次{self.dataclose[-20]}')
+        if self.is_twined():
+            print(f'缠绕状态不交易')
+            return
+        if self.sma_5[-1] < self.sma_40[-1] and self.sma_5[0] > self.sma_40[0]:
+            self.buy(size=1)
+        if self.sma_5[-1] > self.sma_40[-1] and self.sma_5[0] < self.sma_40[0]:
+            self.close()
+        pass
+
+    def is_twined(self) -> bool:
+        count = 0
+        for i in range(0, -20, -1):
+            if MA_1_0.is_crossed(self.sma_5[i], self.sma_40[i], self.sma_5[i - 1], self.sma_40[i - 1]):
+                count += 1
+        print(f'缠绕次数{count}')
+        if count >= 4:
+            return True
+
+    @staticmethod
+    def is_crossed(a1, b1, a2, b2) -> bool:
+        if (a1 < b1 and a2 > b2) or (a1 > b1 and a2 < b2):
+            return True
+        return False

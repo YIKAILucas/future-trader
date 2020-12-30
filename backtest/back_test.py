@@ -13,7 +13,7 @@ from pyecharts.charts import Kline, Line, Bar
 
 import config_reader
 from path import ROOT_DIR
-from strategies import MACD_Strategy
+from strategies import MACD_Strategy, MA_1_0
 
 
 def kline(data, date):
@@ -179,8 +179,10 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     cerebro.adddata(data1)
     cash = ConfigReader.init_cash
     cerebro.broker.setcash(cash)
-
-    cerebro.broker.setcommission(commission=0.0, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
+    # commision手续费
+    # automargin 保证金比例，按一手 0.07 * 5 = 0.35
+    # mult 单手吨数
+    cerebro.broker.setcommission(commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='SharpeRatio')
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='DW')
     # Print out the starting conditions
@@ -228,9 +230,11 @@ if __name__ == '__main__':
     total1 = period_date['total'][0][0]
     total2 = period_date['total'][0][1]
     ConfigReader = config_reader.ConfigReader()
-    # run_Backtest(ConfigReader.choose_strategy, fromdate2, todate2)
+
+    # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
     # run_Backtest(MACD_Strategy, fromdate3, todate3)
-    run_Backtest(MACD_Strategy, fromdate2, todate2)
+    run_Backtest(MA_1_0, total1, total2)
+    # run_Backtest(MA_1_0, fromdate3, todate3)
     # run_Backtest(Bolling_2_0, fromdate2, todate2)
     # run_Backtest(MACD_Strategy,fromdate1, todate1)
     # time.sleep(2)
