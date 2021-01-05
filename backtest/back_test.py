@@ -12,6 +12,7 @@ from pyecharts import options as opts
 from pyecharts.charts import Kline, Line, Bar
 
 import config_reader
+from backtest import strategies
 from path import ROOT_DIR
 from strategies import MACD_Strategy, MA_1_0
 
@@ -175,6 +176,7 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     cerebro.addobserver(bt.observers.TimeReturn)
     # cerebro.addobserver(bt.observers.Benchmark)
     cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
 
     cerebro.adddata(data1)
     cash = ConfigReader.init_cash
@@ -184,13 +186,19 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     # mult 单手吨数
     cerebro.broker.setcommission(commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='SharpeRatio')
+    cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='DW')
+    cerebro.addwriter(bt.WriterFile, csv=True,out='log.csv')
+
     # Print out the starting conditions
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     # Run over everything
     results = cerebro.run()
-
+    protfolio_stats=results[0].analyzers.getbyname('PyFolio')
+    returns,positions,transactions,gross_level=protfolio_stats.get_pf_items()
+    print(f'returns{returns}')
+    print(f'transactions{transactions}')
     # Print out the final result
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
     # Plot the result
@@ -202,7 +210,13 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     print('回撤指标:', start.analyzers.DW.get_analysis())
     print(f'净收益: {round(pnl, 2)}')
 
-    # ddf = get_data('300002.SZ', '20050101')
+    strategies.test_py(MACD_Strategy.xlist,MACD_Strategy.ylist,MACD_Strategy.y2list,MACD_Strategy.y3list,MACD_Strategy.y4list)
+    # print(MACD_Strategy.xlist[0])
+    # print(MACD_Strategy.ylist[0])
+    print(MACD_Strategy.xlist[0:10])
+    print(MACD_Strategy.y4list[0:10])
+
+# ddf = get_data('300002.SZ', '20050101')
     # data = Addmoredata(dataname=ddf)
     # df00, df0, df1, df2, df3, df4 = bt,(BollingStrategy, data, startcash=cash, commission=0)
 
@@ -229,12 +243,15 @@ if __name__ == '__main__':
     todate3 = period_date['shudder'][1][1]
     total1 = period_date['total'][0][0]
     total2 = period_date['total'][0][1]
+
+    fromdate4 = period_date['fall'][0][0]
+    todate4 = period_date['fall'][0][1]
     ConfigReader = config_reader.ConfigReader()
 
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
     # run_Backtest(MACD_Strategy, fromdate3, todate3)
-    run_Backtest(MA_1_0, total1, total2)
-    # run_Backtest(MA_1_0, fromdate3, todate3)
+    # run_Backtest(MA_1_0, total1, total2)
+    run_Backtest(MACD_Strategy, fromdate1, todate1)
     # run_Backtest(Bolling_2_0, fromdate2, todate2)
     # run_Backtest(MACD_Strategy,fromdate1, todate1)
     # time.sleep(2)

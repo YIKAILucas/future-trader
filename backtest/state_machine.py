@@ -42,7 +42,6 @@ class BaseMachine(object):
 
         pass
 
-
     def get_state(self):
         state_l = []
         for i in self.strategy_states:
@@ -58,7 +57,6 @@ class BaseMachine(object):
         if not self.q.empty():
             next_item = self.q.get_nowait()
             print(f'pop出的状态{next_item}')
-            self.q.task_done()
         # clear queue
         self.q.queue.clear()
         return next_item
@@ -101,15 +99,21 @@ class RiskMachine(object):
     风险控制机
     """
     pass
+def test_priority():
+    state_machine = BaseMachine()
+    if 'normal' in (1,'normal'):
+        print('ok')
+    state_machine.add_state('normal')
 
 
 if __name__ == '__main__':
-    state_machine = BaseMachine()
-    print(state_machine.strategy_model.state)
-    state_machine.strategy_model.to_rise()
-    print(state_machine.strategy_model.state)
-    state_machine.next_state()
-
+    # state_machine = BaseMachine()
+    # print(state_machine.strategy_model.state)
+    # state_machine.strategy_model.to_rise()
+    # print(state_machine.strategy_model.state)
+    # state_machine.next_state()
+    pass
+    test_priority()
     #
     # # Test
     # print(matter.state)  # solid

@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 import backtrader as bt
+from pyecharts.globals import ThemeType
 
 import config_reader
 from backtest.Mydecorator import show_reason_and_mode
@@ -279,16 +280,6 @@ def down_in_10days(self) -> bool:
 def handle(self):
     """
     不同状态不同交易策略 'normal', 'rise', 'fall', 'shudder', 'asleep'
-    normal状态
-    1. 下轨买入
-    2. 上轨平仓
-    3. 当天不会平仓
-
-    rise状态
-    1. 每天买进1手
-
-    fall状态
-    1. 平仓，每天卖一手空单
     """
 
     if self.s_model.is_normal():
@@ -337,16 +328,109 @@ class DoubleMA(BaseStrategy):
             self.close(self.datas[0])
 
 
+import pyecharts.options as opts
+from pyecharts.charts import Line, Bar, Page
+
+
+def test_py(xdata, ydata, cdata, y3, y4):
+    line = (
+        Line(init_opts=opts.InitOpts(theme=ThemeType.MACARONS))
+            .set_global_opts(
+            datazoom_opts=[opts.DataZoomOpts()],
+            tooltip_opts=opts.TooltipOpts(is_show=True),
+            # xaxis_opts=opts.AxisOpts(type_="time"),
+            yaxis_opts=opts.AxisOpts(
+                type_="value",
+                axistick_opts=opts.AxisTickOpts(is_show=False),
+                splitline_opts=opts.SplitLineOpts(is_show=True),
+            ))
+            .add_xaxis(xdata)
+            .add_yaxis(
+            series_name="EMA",
+            y_axis=ydata,
+            symbol='',
+            is_symbol_show=False,
+            label_opts=opts.LabelOpts(is_show=True),
+            tooltip_opts=opts.TooltipOpts(is_show=True),
+        )
+            .add_yaxis(
+            series_name="期价",
+            y_axis=cdata,
+            symbol='',
+            is_symbol_show=False,
+            label_opts=opts.LabelOpts(is_show=True),
+            tooltip_opts=opts.TooltipOpts(is_show=True),
+
+        )
+            .add_yaxis(
+            series_name="持仓量",
+            y_axis=y4,
+            yaxis_index=1,
+
+            # markpoint_opts=opts.MarkPointOpts(data=[opts.MarkPointItem(type_="min")]),
+            symbol="emptyCircle",
+            is_symbol_show=False,
+            label_opts=opts.LabelOpts(is_show=True),
+            tooltip_opts=opts.TooltipOpts(is_show=True),
+
+           areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+        )
+            .extend_axis(
+            yaxis=opts.AxisOpts(
+                axislabel_opts=opts.LabelOpts(formatter="{value} 手"),
+            )
+        )
+
+    )
+    bar = (
+        Bar(init_opts=opts.InitOpts(theme=ThemeType.MACARONS))
+            .add_xaxis(xdata)
+            .add_yaxis(
+            series_name="macd柱",
+            y_axis=y3,
+            label_opts=opts.LabelOpts(is_show=False)
+            #         label_opts=opts.LabelOpts(is_show=True),
+        )
+            #     .extend_axis(
+            #         yaxis=opts.AxisOpts(
+            #             axislabel_opts=opts.LabelOpts(formatter="{value} °C"), interval=5
+            #         )
+            .set_global_opts(title_opts=opts.TitleOpts(title="macd"),
+                             xaxis_opts=opts.AxisOpts(type_='time'),
+                             yaxis_opts=opts.AxisOpts(
+                                 axistick_opts=opts.AxisTickOpts(is_show=False),
+                                 splitline_opts=opts.SplitLineOpts(is_show=True),
+                             ),
+                             )
+    )
+    # line.overlap(bar)
+
+    # page = Page(layout=Page.SimplePageLayout)
+    # page.add(line)
+    # page.add(bar)
+    # page.render('fuck.html')
+    line.render('fuck.html')
+
+
 class MACD_Strategy(BaseStrategy):
     """
     MACD 策略
     """
     params = (('p1', 12), ('p2', 26), ('size', ConfigReader.trade_size),
               ('printlog', True))
+    xlist = []
+    ylist = []
+    y2list = []
+    y3list = []
+    y4list = []
 
     def __init__(self):
         super().__init__()
         self.ema = bt.ind.EMA(self.data, period=self.p.p1, )
+        # MACD_Strategy.ylist=self.ema
+
+        # test_py(self.data.datetime.date(),self.data.datetime.date()
+
         self.lines.macdhist = bt.ind.MACDHisto(self.dataclose,
                                                period_me1=self.p.p1,
                                                period_me2=self.p.p2,
@@ -356,20 +440,24 @@ class MACD_Strategy(BaseStrategy):
         super().init_model()
 
     def choose_state(self):
+        pass
         if self.lines.macdhist[0] < 0:
-            if self.s_model.is_fall() is False:
-                self.s_model.to_fall(self)
+            pass
+            # if self.s_model.is_fall() is False:
+            #     self.s_model.to_fall(self)
         else:
             if self.s_model.is_normal() is False:
                 self.s_model.to_normal(self)
 
     def handle(self):
+        self.show_me()
+        # MACD_Strategy.ylist.append(self.ema[0])
         # 当MACD柱大于0（红柱）时买入
         # print(f'fuck {self.lines.macdhist[0] - self.signal[0]}')
         # print(f'fuck {self.signal[0]}')
         if self.s_model.is_normal():
-            if self.lines.macdhist[0] > 0:
-                # if self.lines.macdhist[0] - self.signal[0] < 0:
+            # if self.lines.macdhist[0] > 0:
+            if self.lines.macdhist[0] - self.signal[0] < 0:
                 self.order = self.buy(size=1)
             else:
                 self.close()
@@ -385,6 +473,13 @@ class MACD_Strategy(BaseStrategy):
         #     print('买入')
         # else:
         #     self.close()
+
+    def show_me(self):
+        MACD_Strategy.xlist.append(self.data.datetime.date())
+        MACD_Strategy.ylist.append(self.ema[0])
+        MACD_Strategy.y2list.append(self.dataclose[0])
+        MACD_Strategy.y3list.append(self.lines.macdhist[0])
+        MACD_Strategy.y4list.append(self.getposition().size)
 
 
 class MA_1_0(BaseStrategy):
