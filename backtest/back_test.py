@@ -13,6 +13,7 @@ from pyecharts.charts import Kline, Line, Bar
 
 import config_reader
 from backtest import strategies
+from backtest.data_feeder import DataFeederAdapter
 from path import ROOT_DIR
 from strategies import MACD_Strategy, MA_1_0
 
@@ -82,19 +83,6 @@ def kline(data, date):
     )
 
 
-def dmy2ymd(dmy):
-    # 把dmy格式的字符串转化成ymd格式的字符串
-    dmy = str(dmy).split()[0]
-    # print(dmy)
-    if dmy == 'NaT':
-        return None
-    d = dt.datetime.strptime(dmy, '%Y-%m-%d')
-    d = d.date()
-    # ymd = d.strftime('%Y-%m-%d')
-
-    return d
-
-
 def show_echarts(data, v, title, plot_type='line', zoom=False):
     att = data.index
     try:
@@ -114,40 +102,32 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
               is_datazoom_show=zoom, is_splitline_show=True)
     return p
 
+def data_adapter():
+    pass
+
 
 def run_Backtest(strategy=None, fromdate=None, todate=None):
     # 注意+-，这里最后的pandas要符合backtrader的要求的格式
-    dataframe = pd.read_csv(ROOT_DIR + '/boll.csv', encoding='utf-8_sig', parse_dates=True)
-    dataframe.dropna()
-    trans_date = [dmy2ymd(d) for d in dataframe['日期']]
+    # dataframe = DataFeederAdapter.csv_data_feed()
 
-    dataframe['date'] = trans_date
-    print(dataframe.shape)
-    dataframe['openinterest'] = 0
-    dataframe['volume'] = [0] * dataframe.shape[0]
-
-    dataframe.rename(columns={'开盘价(元)': 'open', '收盘价(元)': 'close', '最高价(元)': 'high', '最低价(元)': 'low'},
-                     inplace=True)
-
-    dataframe = dataframe[['date', 'open', 'close', 'high', 'low', 'volume']]
-
-    dataframe.to_csv('cdata.csv', index=False)
-
-    dataframe = pd.read_csv('cdata.csv', parse_dates=True, index_col=[0])
-    print(dataframe.info())
-    print(dataframe.describe())
-
-    print(dataframe.head())
-
-    print(dataframe)
+    dataframe= DataFeederAdapter.get_tushare()
     data1 = bt.feeds.PandasData(
         dataname=dataframe,
         fromdate=datetime.datetime(fromdate[0], fromdate[1], fromdate[2]),
         todate=datetime.datetime(todate[0], todate[1], todate[2]),
+        timeframe=bt.TimeFrame.Days
+        # openinterest=-1,
+    )
+
+    data1 = bt.feeds.PandasData(
+        dataname=dataframe,
+        fromdate=datetime.datetime(year=2015, month=8, day=4),
+        todate=datetime.datetime(2018, 10, 4),
         # volume=-1,
         timeframe=bt.TimeFrame.Days
         # openinterest=-1,
     )
+
     # data1 = bt.feeds.GenericCSVData(
     #     dataname="./cdata.csv",
     #     # datetime=0,
@@ -235,8 +215,8 @@ if __name__ == '__main__':
         'fall': [((2011, 3, 14), (2011, 8, 12)), ((2014, 3, 20), (2016, 4, 1))],
         'total': [((2004, 4, 1), (2020, 1, 1))]
     }
-    fromdate1 = period_date['rise'][0][0]
-    todate1 = period_date['rise'][0][1]
+    fromdate1 = period_date['rise'][1][0]
+    todate1 = period_date['rise'][1][1]
     fromdate2 = period_date['fall'][1][0]
     todate2 = period_date['fall'][1][1]
     fromdate3 = period_date['shudder'][1][0]
@@ -249,9 +229,10 @@ if __name__ == '__main__':
     ConfigReader = config_reader.ConfigReader()
 
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
-    # run_Backtest(MACD_Strategy, fromdate3, todate3)
-    # run_Backtest(MA_1_0, total1, total2)
     run_Backtest(MACD_Strategy, fromdate1, todate1)
+    # run_Backtest(MACD_Strategy)
+    # run_Backtest(MA_1_0, total1, total2)
+    # run_Backtest(MA_1_0, fromdate1, todate1)
     # run_Backtest(Bolling_2_0, fromdate2, todate2)
     # run_Backtest(MACD_Strategy,fromdate1, todate1)
     # time.sleep(2)

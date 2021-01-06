@@ -442,9 +442,8 @@ class MACD_Strategy(BaseStrategy):
     def choose_state(self):
         pass
         if self.lines.macdhist[0] < 0:
-            pass
-            # if self.s_model.is_fall() is False:
-            #     self.s_model.to_fall(self)
+            if self.s_model.is_fall() is False:
+                self.s_model.to_fall(self)
         else:
             if self.s_model.is_normal() is False:
                 self.s_model.to_normal(self)
@@ -457,13 +456,13 @@ class MACD_Strategy(BaseStrategy):
         # print(f'fuck {self.signal[0]}')
         if self.s_model.is_normal():
             # if self.lines.macdhist[0] > 0:
-            if self.lines.macdhist[0] - self.signal[0] < 0:
+            if self.lines.macdhist[0] - self.signal[0] > 0:
                 self.order = self.buy(size=1)
             else:
                 self.close()
         elif self.s_model.is_fall():
-            if self.lines.macdhist[0] < 0:
-                # if self.lines.macdhist[0] - self.signal[0] < 0:
+            # if self.lines.macdhist[0] < 0:
+            if self.lines.macdhist[0] - self.signal[0] < 0:
                 self.order = self.sell(size=1)
             else:
                 self.close()
@@ -483,7 +482,16 @@ class MACD_Strategy(BaseStrategy):
 
 
 class MA_1_0(BaseStrategy):
+    params = (('p1', 12), ('p2', 26), ('size', ConfigReader.trade_size),
+              ('printlog', True))
     def choose_state(self):
+        if self.lines.macdhist[0] < 0:
+            pass
+            # if self.s_model.is_fall() is False:
+            #     self.s_model.to_fall(self)
+        else:
+            if self.s_model.is_normal() is False:
+                self.s_model.to_normal(self)
         pass
 
     def __init__(self):
@@ -492,6 +500,13 @@ class MA_1_0(BaseStrategy):
         self.sma_10 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_10)
         self.sma_20 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_20)
         self.sma_40 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_40)
+        self.lines.macdhist = bt.ind.MACDHisto(self.dataclose,
+                                               period_me1=self.p.p1,
+                                               period_me2=self.p.p2,
+                                               )
+
+        self.signal = self.lines.macdhist - self.lines.macdhist.lines.histo
+        super().init_model()
         # self.sma_60 = bt.ind.SimpleMovingAverage(self.dataclose, period=ConfigReader.MA_line_60)
 
     def handle(self):
@@ -499,11 +514,22 @@ class MA_1_0(BaseStrategy):
         if self.is_twined():
             print(f'缠绕状态不交易')
             return
-        if self.sma_5[-1] < self.sma_40[-1] and self.sma_5[0] > self.sma_40[0]:
-            self.buy(size=1)
-        if self.sma_5[-1] > self.sma_40[-1] and self.sma_5[0] < self.sma_40[0]:
-            self.close()
-        pass
+
+        if self.s_model.is_normal():
+            # if self.lines.macdhist[0] > 0:
+            if self.sma_5[-1] < self.sma_40[-1] and self.sma_5[0] > self.sma_40[0]:
+            # if self.sma_5[0] > self.sma_40[0]:
+                self.buy(size=1)
+            if self.sma_5[-1] > self.sma_40[-1] and self.sma_5[0] < self.sma_40[0]:
+            # if self.sma_5[0] < self.sma_40[0]:
+                self.close()
+        elif self.s_model.is_fall():
+            if self.sma_5[-1] < self.sma_40[-1] and self.sma_5[0] < self.sma_40[0]:
+            # if self.sma_5[0] < self.sma_40[0]:
+                self.buy(size=1)
+            if self.sma_5[-1] > self.sma_40[-1] and self.sma_5[0] > self.sma_40[0]:
+            # if self.sma_5[0] > self.sma_40[0]:
+                self.close()
 
     def is_twined(self) -> bool:
         count = 0
