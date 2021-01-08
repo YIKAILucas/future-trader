@@ -100,15 +100,9 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
     return p
 
 
-def data_adapter():
-    pass
-
-
 def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
-    # 注意+-，这里最后的pandas要符合backtrader的要求的格式
-
-    # dataframe= DataFeederAdapter.get_tushare()
-    data1 = bt.feeds.PandasData(
+    # dataframe要符合backtrader的要求的格式 open,close,high,low,volume
+    future_data = bt.feeds.PandasData(
         dataname=dataframe,
         fromdate=datetime.datetime(fromdate[0], fromdate[1], fromdate[2]),
         todate=datetime.datetime(todate[0], todate[1], todate[2]),
@@ -116,93 +110,53 @@ def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
         # openinterest=-1,
     )
 
-    # data1 = bt.feeds.PandasData(
-    #     dataname=dataframe,
-    #     fromdate=datetime.datetime(year=2015, month=8, day=4),
-    #     todate=datetime.datetime(2018, 10, 4),
-    #     # volume=-1,
-    #     timeframe=bt.TimeFrame.Days
-    #     # openinterest=-1,
-    # )
-
-    # data1 = bt.feeds.GenericCSVData(
-    #     dataname="./cdata.csv",
-    #     # datetime=0,
-    #     # timeframe=bt.TimeFrame.Days,
-    #     # compression=1,
-    #     fromdate=datetime.datetime(fromdate1[0], fromdate1[1], fromdate1[2]),
-    #     todate=datetime.datetime(todate1[0], todate1[1], todate1[2]),
-    #     open=1,
-    #     close=2,
-    #     high=3,
-    #     low=4,
-    #     dtformat="%Y-%m-%d"
-    #     # volume=-1,
-    #     # openinterest=-1,
-    # )
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
     datapath = os.path.join(modpath, 'cdata.csv')
 
-    # 是否当天交易，当天交易->未来函数
-    # 默认false
+    # 是否当天交易, 默认false
     cerebro = bt.Cerebro(cheat_on_open=False)
-
     cerebro.addstrategy(strategy)
 
     cerebro.addobserver(bt.observers.DrawDown)
-    cerebro.addobserver(bt.observers.TimeReturn)
     # cerebro.addobserver(bt.observers.Benchmark)
     cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
     cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='SharpeRatio')
+    cerebro.addanalyzer(bt.analyzers.DrawDown, _name='DW')
+    # 添加结果回写
+    cerebro.addwriter(bt.WriterFile, csv=True, out='log.csv')
 
-    cerebro.adddata(data1)
+    cerebro.adddata(future_data)
     cash = ConfigReader.init_cash
     cerebro.broker.setcash(cash)
     # commision手续费
     # automargin 保证金比例，按一手 0.07 * 5 = 0.35
     # mult 单手吨数
     cerebro.broker.setcommission(commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
-    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='SharpeRatio')
-    cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
-    cerebro.addanalyzer(bt.analyzers.DrawDown, _name='DW')
-    cerebro.addwriter(bt.WriterFile, csv=True, out='log.csv')
 
-    # Print out the starting conditions
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
-
-    # Run over everything
     results = cerebro.run()
+    # TODO 后续用于pyecharts
     protfolio_stats = results[0].analyzers.getbyname('PyFolio')
     returns, positions, transactions, gross_level = protfolio_stats.get_pf_items()
     print(f'returns{returns}')
     print(f'transactions{transactions}')
     # Print out the final result
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue(lever=True))
-    # Plot the result
     portvalue = cerebro.broker.getvalue()
-
     pnl = portvalue - cash
     start = results[0]
     print('夏普比率:', start.analyzers.SharpeRatio.get_analysis())
     print('回撤指标:', start.analyzers.DW.get_analysis())
     print(f'净收益: {round(pnl, 2)}')
 
-    strategies.test_py(MACD_Strategy.xlist, MACD_Strategy.ylist, MACD_Strategy.y2list, MACD_Strategy.y3list,
-                       MACD_Strategy.y4list)
-    # print(MACD_Strategy.xlist[0])
-    # print(MACD_Strategy.ylist[0])
+    strategies.show_pyecharts(MACD_Strategy.xlist, MACD_Strategy.ylist, MACD_Strategy.y2list, MACD_Strategy.y3list,
+                              MACD_Strategy.y4list)
     print(MACD_Strategy.xlist[0:10])
     print(MACD_Strategy.y4list[0:10])
 
-    # ddf = get_data('300002.SZ', '20050101')
-    # data = Addmoredata(dataname=ddf)
-    # df00, df0, df1, df2, df3, df4 = bt,(BollingStrategy, data, startcash=cash, commission=0)
-
     # show_echarts(df3, 'year_rate', '年化收益%', plot_type='bar')
-
     cerebro.plot()
-    # print(dataframe.head())
-    # kline(dataframe,trans_date)
 
 
 if __name__ == '__main__':
@@ -235,16 +189,3 @@ if __name__ == '__main__':
     real_start = (2020, 9, 1)
     real_end = (2021, 1, 6)
     run_Backtest(dataframe1, MACD_Strategy, real_start, real_end)
-    # run_Backtest(dataframe2, MACD_Strategy, real_start, real_end)
-    # run_Backtest(MACD_Strategy)
-    # run_Backtest(MA_1_0, total1, total2)
-    # run_Backtest(MA_1_0, fromdate1, todate1)
-    # run_Backtest(Bolling_2_0, fromdate2, todate2)
-    # run_Backtest(MACD_Strategy,fromdate1, todate1)
-    # time.sleep(2)
-    # run_Backtest(fromdate2, todate2)
-
-# t1 = threading.Thread(target=run_Backtest, args=(fromdate1, todate1))
-# t2 = threading.Thread(target=run_Backtest, args=(fromdate2, todate2))
-# t1.start()
-# t2.start()

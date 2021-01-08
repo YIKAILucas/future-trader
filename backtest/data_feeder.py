@@ -77,6 +77,19 @@ class DataFeederAdapter(object):
         return dataframe.loc[:, ['open', 'close', 'high', 'low', 'volume']]
 
     @staticmethod
+    def test_tushare():
+        ts.set_token('4680f3e9395b06311cf43c1627e3624da1e4d0b4e273caea0206c8ad')
+        pro = ts.pro_api()
+        pd.set_option('display.max_rows', None)
+        pd.set_option('max_colwidth', 100)
+        pd.set_option('display.max_columns', None)
+
+        df = pro.fut_basic(exchange='CZCE', fut_type='1', fields='ts_code,symbol,name,list_date,delist_date')
+        print(df)
+        # df = pro.fut_daily(ts_code='CU1811.CZCE', start_date='20180101', end_date='20181113')
+
+    # df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20040601', end_date='20210107')
+    @staticmethod
     def csv_data_feed() -> pd.DataFrame:
         dataframe = pd.read_csv(ROOT_DIR + '/boll.csv', encoding='utf-8_sig', parse_dates=True)
         dataframe.dropna()
@@ -104,7 +117,8 @@ class DataFeederAdapter(object):
 
 
 if __name__ == '__main__':
-    d1 = DataFeederAdapter.get_tushare()
+    # d1 = DataFeederAdapter.get_tushare()
+    d1 = DataFeederAdapter.test_tushare()
     print(d1)
     # d2 = DataFeederAdapter.csv_data_feed()
 

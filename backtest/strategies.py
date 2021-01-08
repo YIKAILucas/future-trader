@@ -332,7 +332,7 @@ import pyecharts.options as opts
 from pyecharts.charts import Line, Bar, Page
 
 
-def test_py(xdata, ydata, cdata, y3, y4):
+def show_pyecharts(xdata, ydata, cdata, y3, y4):
     line = (
         Line(init_opts=opts.InitOpts(theme=ThemeType.MACARONS))
             .set_global_opts(
