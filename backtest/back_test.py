@@ -7,12 +7,12 @@ import sys
 
 import backtrader as bt
 from pyecharts import options as opts
-from pyecharts.charts import Kline, Line, Bar
+from pyecharts.charts import Kline
 
 import config_reader
 from backtest import strategies
 from backtest.data_feeder import DataFeederAdapter
-from strategies import MACD_Strategy
+from strategies import MACD_Strategy, Bolling_2_0, MA_1_0, BollingStrategy_1_0
 
 
 def kline(data, date):
@@ -80,26 +80,6 @@ def kline(data, date):
     )
 
 
-def show_echarts(data, v, title, plot_type='line', zoom=False):
-    att = data.index
-    try:
-        attr = att.strftime('%Y%m%d')
-    except:
-        attr = att
-    if plot_type == 'line':
-        p = Line(title)
-        p.add_xaxis('', attr,
-                    is_symbol_show=False, line_width=2,
-                    is_datazoom_show=zoom, is_splitline_show=True)
-        p.add_yaxis(list(data[v].round(2)))
-    else:
-        p = Bar(title)
-        p.add('', attr, [int(i * 1000) / 10 for i in list(data[v])],
-              is_label_show=True,
-              is_datazoom_show=zoom, is_splitline_show=True)
-    return p
-
-
 def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
     # dataframe要符合backtrader的要求的格式 open,close,high,low,volume
     future_data = bt.feeds.PandasData(
@@ -155,7 +135,6 @@ def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
     print(MACD_Strategy.xlist[0:10])
     print(MACD_Strategy.y4list[0:10])
 
-    # show_echarts(df3, 'year_rate', '年化收益%', plot_type='bar')
     cerebro.plot()
 
 
@@ -186,6 +165,6 @@ if __name__ == '__main__':
     print(dataframe1)
     print('---------')
     print(dataframe2)
-    real_start = (2020, 9, 1)
+    real_start = (2020, 6, 1)
     real_end = (2021, 1, 6)
-    run_Backtest(dataframe1, MACD_Strategy, real_start, real_end)
+    run_Backtest(dataframe1, MA_1_0, real_start, real_end)
