@@ -70,9 +70,15 @@ class DataFeederAdapter(object):
         # df.set_index(['date'], inplace=True)
         df = df[['date', 'open', 'close', 'high', 'low', 'volume']]
         df.sort_values(by=['date'], ascending=True, inplace=True)
+        pd.to_datetime(df['date'], format="%Y-%m-%d")
+
+        # df['date'] = df['date'].dt.date
+
         df.to_csv('cc.csv', index=False)
 
         dataframe = pd.read_csv('cc.csv', parse_dates=True, index_col=[0])
+        # print(dataframe)
+        # pd.to_datetime(dataframe['date'], format="%Y%m.%d")
 
         return dataframe.loc[:, ['open', 'close', 'high', 'low', 'volume']]
 

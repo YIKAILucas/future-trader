@@ -12,7 +12,7 @@ from pyecharts.charts import Kline
 import config_reader
 from backtest import strategies
 from backtest.data_feeder import DataFeederAdapter
-from strategies import MACD_Strategy, Bolling_2_0, MA_1_0, BollingStrategy_1_0
+from strategies import MACD_Strategy, MA_1_0, Bolling_2_0
 
 
 def kline(data, date):
@@ -80,13 +80,15 @@ def kline(data, date):
     )
 
 
-def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
+def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
     # dataframe要符合backtrader的要求的格式 open,close,high,low,volume
     future_data = bt.feeds.PandasData(
         dataname=dataframe,
         fromdate=datetime.datetime(fromdate[0], fromdate[1], fromdate[2]),
         todate=datetime.datetime(todate[0], todate[1], todate[2]),
-        timeframe=bt.TimeFrame.Days
+        timeframe=bt.TimeFrame.Days,
+        # dtformat=('%d-%m-%Y %H:%M'),
+        # dtformat="%Y-%m-%d"
         # openinterest=-1,
     )
 
@@ -95,8 +97,9 @@ def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
 
     # 是否当天交易, 默认false
     cerebro = bt.Cerebro(cheat_on_open=False)
-    cerebro.addstrategy(strategy)
-
+    for s in strategy:
+        cerebro.addstrategy(s)
+    # cerebro.addstrategy(strategy[0])
     cerebro.addobserver(bt.observers.DrawDown)
     # cerebro.addobserver(bt.observers.Benchmark)
     cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
@@ -135,7 +138,11 @@ def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
     print(MACD_Strategy.xlist[0:10])
     print(MACD_Strategy.y4list[0:10])
 
-    cerebro.plot()
+    figs = cerebro.plot()
+    # TODO 自动保存结果图片
+    # for i in figs:
+    #     print(123)
+    #     break
 
 
 if __name__ == '__main__':
@@ -159,12 +166,14 @@ if __name__ == '__main__':
     todate4 = period_date['fall'][0][1]
     ConfigReader = config_reader.ConfigReader()
 
-    # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
-    dataframe1 = DataFeederAdapter.get_tushare()
-    dataframe2 = DataFeederAdapter.csv_data_feed()
-    print(dataframe1)
-    print('---------')
-    print(dataframe2)
-    real_start = (2020, 6, 1)
+    dataframe_online = DataFeederAdapter.get_tushare()
+    dataframe_csv = DataFeederAdapter.csv_data_feed()
+    # print(dataframe_online)
+    # print('---------')
+    # print(dataframe_csv)
+    real_start = (2020, 9, 1)
     real_end = (2021, 1, 6)
-    run_Backtest(dataframe1, MA_1_0, real_start, real_end)
+    # TODO 通过配置文件选择策略
+    # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
+    strategy_list = [MA_1_0, MACD_Strategy, Bolling_2_0]
+    run_Backtest(dataframe_online, strategy_list, real_start, real_end)
