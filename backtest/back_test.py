@@ -138,11 +138,14 @@ def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
     print(MACD_Strategy.xlist[0:10])
     print(MACD_Strategy.y4list[0:10])
 
-    figs = cerebro.plot()
+    # 此处修改了源码
+    figs = cerebro.plot(show=False)
     # 保存结果图片
-    for index,fig in enumerate(figs):
+    save_path = 'generated/'
+
+    for index, fig in enumerate(figs):
         for f in fig:
-            f.savefig(f'{strategy[index]}.png')
+            f.savefig(f'{save_path}{strategy[index].__name__}-->{str(datetime.datetime.today())}.png')
 
 
 if __name__ == '__main__':
