@@ -139,10 +139,10 @@ def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
     print(MACD_Strategy.y4list[0:10])
 
     figs = cerebro.plot()
-    # TODO 自动保存结果图片
-    # for i in figs:
-    #     print(123)
-    #     break
+    # 保存结果图片
+    for index,fig in enumerate(figs):
+        for f in fig:
+            f.savefig(f'{strategy[index]}.png')
 
 
 if __name__ == '__main__':
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     # print(dataframe_csv)
     real_start = (2020, 9, 1)
     real_end = (2021, 1, 6)
-    # TODO 通过配置文件选择策略
+    # TODO 通过配置文件选择策略和周期
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
     strategy_list = [MA_1_0, MACD_Strategy, Bolling_2_0]
     run_Backtest(dataframe_online, strategy_list, real_start, real_end)
