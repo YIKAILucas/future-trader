@@ -2,20 +2,17 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import datetime
-import datetime as dt
 import os
 import sys
 
 import backtrader as bt
-import pandas as pd
 from pyecharts import options as opts
 from pyecharts.charts import Kline, Line, Bar
 
 import config_reader
 from backtest import strategies
 from backtest.data_feeder import DataFeederAdapter
-from path import ROOT_DIR
-from strategies import MACD_Strategy, MA_1_0
+from strategies import MACD_Strategy
 
 
 def kline(data, date):
@@ -102,15 +99,15 @@ def show_echarts(data, v, title, plot_type='line', zoom=False):
               is_datazoom_show=zoom, is_splitline_show=True)
     return p
 
+
 def data_adapter():
     pass
 
 
-def run_Backtest(strategy=None, fromdate=None, todate=None):
+def run_Backtest(dataframe, strategy=None, fromdate=None, todate=None):
     # 注意+-，这里最后的pandas要符合backtrader的要求的格式
-    # dataframe = DataFeederAdapter.csv_data_feed()
 
-    dataframe= DataFeederAdapter.get_tushare()
+    # dataframe= DataFeederAdapter.get_tushare()
     data1 = bt.feeds.PandasData(
         dataname=dataframe,
         fromdate=datetime.datetime(fromdate[0], fromdate[1], fromdate[2]),
@@ -119,14 +116,14 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
         # openinterest=-1,
     )
 
-    data1 = bt.feeds.PandasData(
-        dataname=dataframe,
-        fromdate=datetime.datetime(year=2015, month=8, day=4),
-        todate=datetime.datetime(2018, 10, 4),
-        # volume=-1,
-        timeframe=bt.TimeFrame.Days
-        # openinterest=-1,
-    )
+    # data1 = bt.feeds.PandasData(
+    #     dataname=dataframe,
+    #     fromdate=datetime.datetime(year=2015, month=8, day=4),
+    #     todate=datetime.datetime(2018, 10, 4),
+    #     # volume=-1,
+    #     timeframe=bt.TimeFrame.Days
+    #     # openinterest=-1,
+    # )
 
     # data1 = bt.feeds.GenericCSVData(
     #     dataname="./cdata.csv",
@@ -168,19 +165,19 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='SharpeRatio')
     cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='DW')
-    cerebro.addwriter(bt.WriterFile, csv=True,out='log.csv')
+    cerebro.addwriter(bt.WriterFile, csv=True, out='log.csv')
 
     # Print out the starting conditions
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     # Run over everything
     results = cerebro.run()
-    protfolio_stats=results[0].analyzers.getbyname('PyFolio')
-    returns,positions,transactions,gross_level=protfolio_stats.get_pf_items()
+    protfolio_stats = results[0].analyzers.getbyname('PyFolio')
+    returns, positions, transactions, gross_level = protfolio_stats.get_pf_items()
     print(f'returns{returns}')
     print(f'transactions{transactions}')
     # Print out the final result
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue(lever=True))
     # Plot the result
     portvalue = cerebro.broker.getvalue()
 
@@ -190,13 +187,14 @@ def run_Backtest(strategy=None, fromdate=None, todate=None):
     print('回撤指标:', start.analyzers.DW.get_analysis())
     print(f'净收益: {round(pnl, 2)}')
 
-    strategies.test_py(MACD_Strategy.xlist,MACD_Strategy.ylist,MACD_Strategy.y2list,MACD_Strategy.y3list,MACD_Strategy.y4list)
+    strategies.test_py(MACD_Strategy.xlist, MACD_Strategy.ylist, MACD_Strategy.y2list, MACD_Strategy.y3list,
+                       MACD_Strategy.y4list)
     # print(MACD_Strategy.xlist[0])
     # print(MACD_Strategy.ylist[0])
     print(MACD_Strategy.xlist[0:10])
     print(MACD_Strategy.y4list[0:10])
 
-# ddf = get_data('300002.SZ', '20050101')
+    # ddf = get_data('300002.SZ', '20050101')
     # data = Addmoredata(dataname=ddf)
     # df00, df0, df1, df2, df3, df4 = bt,(BollingStrategy, data, startcash=cash, commission=0)
 
@@ -215,8 +213,8 @@ if __name__ == '__main__':
         'fall': [((2011, 3, 14), (2011, 8, 12)), ((2014, 3, 20), (2016, 4, 1))],
         'total': [((2004, 4, 1), (2020, 1, 1))]
     }
-    fromdate1 = period_date['rise'][1][0]
-    todate1 = period_date['rise'][1][1]
+    fromdate1 = period_date['rise'][0][0]
+    todate1 = period_date['rise'][0][1]
     fromdate2 = period_date['fall'][1][0]
     todate2 = period_date['fall'][1][1]
     fromdate3 = period_date['shudder'][1][0]
@@ -229,7 +227,15 @@ if __name__ == '__main__':
     ConfigReader = config_reader.ConfigReader()
 
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
-    run_Backtest(MACD_Strategy, fromdate1, todate1)
+    dataframe1 = DataFeederAdapter.get_tushare()
+    dataframe2 = DataFeederAdapter.csv_data_feed()
+    print(dataframe1)
+    print('---------')
+    print(dataframe2)
+    real_start = (2020, 9, 1)
+    real_end = (2021, 1, 6)
+    run_Backtest(dataframe1, MACD_Strategy, real_start, real_end)
+    # run_Backtest(dataframe2, MACD_Strategy, real_start, real_end)
     # run_Backtest(MACD_Strategy)
     # run_Backtest(MA_1_0, total1, total2)
     # run_Backtest(MA_1_0, fromdate1, todate1)

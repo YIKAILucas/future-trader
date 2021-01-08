@@ -5,6 +5,7 @@
 # @Last Modified by:  Lucas
 # @Last Modified time:
 
+import datetime
 import datetime as dt
 
 import pandas as pd
@@ -54,7 +55,7 @@ class DataFeederAdapter(object):
         # df = pro.fut_basic(exchange='CZCE', fut_type='2', fields='ts_code,symbol,name,list_date,delist_date')
         # df = pro.fut_daily(ts_code='CU1811.CZCE', start_date='20180101', end_date='20181113')
 
-        df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20140307', end_date='20181012')
+        df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20040601', end_date='20210107')
         # print(df)
         # print(df.loc[:, ['pre_close', 'trade_date', 'close', 'open', 'high', 'low']])
         trans_date = [dmy2ymd2(d) for d in df['trade_date']]
@@ -62,7 +63,7 @@ class DataFeederAdapter(object):
         df['date'] = trans_date
         # df['vol'].rename(['volume'],inplace=True)
 
-        df.rename(columns={'vol':'volume'},inplace=True)
+        df.rename(columns={'vol': 'volume'}, inplace=True)
 
         # df.apply(lambda df.loc[:,[;date]]=1)
 
@@ -104,11 +105,17 @@ class DataFeederAdapter(object):
 
 if __name__ == '__main__':
     d1 = DataFeederAdapter.get_tushare()
-    d2 = DataFeederAdapter.csv_data_feed()
+    print(d1)
+    # d2 = DataFeederAdapter.csv_data_feed()
 
-    print(d1.head())
-    print('-----------------')
-    print(d2.head())
-
-    print(d1.info())
-    print(d2.info())
+    # print(d1.head())
+    # print('-----------------')
+    # print(d2.head())
+    #
+    # print(d1.info())
+    # print(d2.info())
+    da = datetime.datetime.today().date()
+    # print(da)
+    # format_da = dt.datetime.strptime(da, '%Y-%m-%d')
+    #
+    # print(format_da)
