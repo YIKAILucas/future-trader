@@ -10,10 +10,11 @@ from pyecharts import options as opts
 from pyecharts.charts import Kline
 
 import config_reader
+import oss_uploader
 from backtest import strategies
 from backtest.data_feeder import DataFeederAdapter
 from strategies import MACD_Strategy, MA_1_0, Bolling_2_0
-
+from rich import print
 
 def kline(data, date):
     kline = (
@@ -80,12 +81,21 @@ def kline(data, date):
     )
 
 
-def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
+def run_backtest(dataframe, strategy=[], fromdate=None, todate=None):
     # dataframe要符合backtrader的要求的格式 open,close,high,low,volume
     future_data = bt.feeds.PandasData(
         dataname=dataframe,
         fromdate=datetime.datetime(fromdate[0], fromdate[1], fromdate[2]),
         todate=datetime.datetime(todate[0], todate[1], todate[2]),
+        timeframe=bt.TimeFrame.Days,
+        # dtformat=('%d-%m-%Y %H:%M'),
+        # dtformat="%Y-%m-%d"
+        # openinterest=-1,
+    )
+    future_data2 = bt.feeds.PandasData(
+        dataname=dataframe,
+        fromdate=datetime.datetime(2014, 9, 1),
+        todate=datetime.datetime(2018, 9, 1),
         timeframe=bt.TimeFrame.Days,
         # dtformat=('%d-%m-%Y %H:%M'),
         # dtformat="%Y-%m-%d"
@@ -110,6 +120,7 @@ def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
     cerebro.addwriter(bt.WriterFile, csv=True, out='log.csv')
 
     cerebro.adddata(future_data)
+    # cerebro.adddata(future_data2)
     cash = ConfigReader.init_cash
     cerebro.broker.setcash(cash)
     # commision手续费
@@ -139,13 +150,16 @@ def run_Backtest(dataframe, strategy=[], fromdate=None, todate=None):
     print(MACD_Strategy.y4list[0:10])
 
     # 此处修改了源码
-    figs = cerebro.plot(show=False)
+    figs = cerebro.plot(start=datetime.date(2020, 9, 1), end=datetime.date(2021, 1, 7),show=False)
     # 保存结果图片
     save_path = 'generated/'
-
     for index, fig in enumerate(figs):
         for f in fig:
-            f.savefig(f'{save_path}{strategy[index].__name__}-->{str(datetime.datetime.today())}.png')
+            filepath = f'{save_path}{strategy[index].__name__}-->{str(datetime.datetime.today())}.png'
+            f.set_size_inches(19.2, 10.8)
+            f.savefig(filepath)
+
+            oss_uploader.upload_pic(filepath)
 
 
 if __name__ == '__main__':
@@ -174,9 +188,10 @@ if __name__ == '__main__':
     # print(dataframe_online)
     # print('---------')
     # print(dataframe_csv)
+
     real_start = (2020, 9, 1)
     real_end = (2021, 1, 6)
     # TODO 通过配置文件选择策略和周期
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
     strategy_list = [MA_1_0, MACD_Strategy, Bolling_2_0]
-    run_Backtest(dataframe_online, strategy_list, real_start, real_end)
+    run_backtest(dataframe_online, strategy_list, real_start, real_end)
