@@ -8,13 +8,13 @@ import sys
 import backtrader as bt
 from pyecharts import options as opts
 from pyecharts.charts import Kline
+from rich import print
 
 import config_reader
-import oss_uploader
 from backtest import strategies
 from backtest.data_feeder import DataFeederAdapter
 from strategies import MACD_Strategy, MA_1_0, Bolling_2_0
-from rich import print
+
 
 def kline(data, date):
     kline = (
@@ -126,7 +126,7 @@ def run_backtest(dataframe, strategy=[], fromdate=None, todate=None):
     # commision手续费
     # automargin 保证金比例，按一手 0.07 * 5 = 0.35
     # mult 单手吨数
-    cerebro.broker.setcommission(commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
+    cerebro.broker.setcommission(stocklike=False,commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
 
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
     results = cerebro.run()
@@ -150,7 +150,7 @@ def run_backtest(dataframe, strategy=[], fromdate=None, todate=None):
     print(MACD_Strategy.y4list[0:10])
 
     # 此处修改了源码
-    figs = cerebro.plot(start=datetime.date(2020, 9, 1), end=datetime.date(2021, 1, 7),show=False)
+    figs = cerebro.plot(show=False)
     # 保存结果图片
     save_path = 'generated/'
     for index, fig in enumerate(figs):
@@ -158,8 +158,7 @@ def run_backtest(dataframe, strategy=[], fromdate=None, todate=None):
             filepath = f'{save_path}{strategy[index].__name__}-->{str(datetime.datetime.today())}.png'
             f.set_size_inches(19.2, 10.8)
             f.savefig(filepath)
-
-            oss_uploader.upload_pic(filepath)
+            # oss_uploader.upload_pic(filepath)
 
 
 if __name__ == '__main__':
@@ -191,7 +190,16 @@ if __name__ == '__main__':
 
     real_start = (2020, 9, 1)
     real_end = (2021, 1, 6)
+
+    fuck_start = (2014, 9, 5)
+    fuck_end = (2018, 1, 7)
     # TODO 通过配置文件选择策略和周期
     # run_Backtest(ConfigReader.init_choose_strategy, fromdate2, todate2)
     strategy_list = [MA_1_0, MACD_Strategy, Bolling_2_0]
-    run_backtest(dataframe_online, strategy_list, real_start, real_end)
+    # run_backtest(dataframe_online, strategy_list, real_start, real_end)
+    period_list = []
+    period_list.append((real_start, real_end))
+    period_list.append((fuck_start, fuck_end))
+    # time.sleep(5)
+    for p in period_list:
+        run_backtest(dataframe_online, strategy_list, p[0], p[1])

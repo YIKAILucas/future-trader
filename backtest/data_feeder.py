@@ -54,8 +54,9 @@ class DataFeederAdapter(object):
 
         # df = pro.fut_basic(exchange='CZCE', fut_type='2', fields='ts_code,symbol,name,list_date,delist_date')
         # df = pro.fut_daily(ts_code='CU1811.CZCE', start_date='20180101', end_date='20181113')
-
-        df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20040601', end_date='20210107')
+        today = datetime.datetime.today().date()
+        end = str(today).replace('-', '')
+        df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20040601', end_date=end)
         # print(df)
         # print(df.loc[:, ['pre_close', 'trade_date', 'close', 'open', 'high', 'low']])
         trans_date = [dmy2ymd2(d) for d in df['trade_date']]
@@ -71,7 +72,7 @@ class DataFeederAdapter(object):
         df = df[['date', 'open', 'close', 'high', 'low', 'volume']]
         df.sort_values(by=['date'], ascending=True, inplace=True)
         pd.to_datetime(df['date'], format="%Y-%m-%d")
-
+        # df.reindex(['date'])
         # df['date'] = df['date'].dt.date
 
         df.to_csv('cc.csv', index=False)
@@ -123,8 +124,8 @@ class DataFeederAdapter(object):
 
 
 if __name__ == '__main__':
-    # d1 = DataFeederAdapter.get_tushare()
-    d1 = DataFeederAdapter.test_tushare()
+    d1 = DataFeederAdapter.get_tushare()
+    # d1 = DataFeederAdapter.test_tushare()
     print(d1)
     # d2 = DataFeederAdapter.csv_data_feed()
 
@@ -134,8 +135,3 @@ if __name__ == '__main__':
     #
     # print(d1.info())
     # print(d2.info())
-    da = datetime.datetime.today().date()
-    # print(da)
-    # format_da = dt.datetime.strptime(da, '%Y-%m-%d')
-    #
-    # print(format_da)
