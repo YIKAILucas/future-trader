@@ -98,7 +98,7 @@ class DataFeederAdapter(object):
     # df: pd.DataFrame = pro.fut_daily(ts_code='CF.ZCE', start_date='20040601', end_date='20210107')
     @staticmethod
     def csv_data_feed() -> pd.DataFrame:
-        dataframe = pd.read_csv(ROOT_DIR + '/boll.csv', encoding='utf-8_sig', parse_dates=True)
+        dataframe = pd.read_csv(ROOT_DIR + '/KTick.csv', encoding='utf-8_sig', parse_dates=True)
         dataframe.dropna()
         trans_date = [dmy2ymd(d) for d in dataframe['日期']]
 

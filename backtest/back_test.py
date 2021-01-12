@@ -126,7 +126,8 @@ def run_backtest(dataframe, strategy=[], fromdate=None, todate=None):
     # commision手续费
     # automargin 保证金比例，按一手 0.07 * 5 = 0.35
     # mult 单手吨数
-    cerebro.broker.setcommission(stocklike=False,commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35, mult=5)
+    cerebro.broker.setcommission(stocklike=False, commission=5, commtype=bt.CommInfoBase.COMM_FIXED, automargin=0.35,
+                                 mult=5)
 
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
     results = cerebro.run()
@@ -183,13 +184,16 @@ if __name__ == '__main__':
     ConfigReader = config_reader.ConfigReader()
 
     dataframe_online = DataFeederAdapter.get_tushare()
-    dataframe_csv = DataFeederAdapter.csv_data_feed()
+    # dataframe_csv = DataFeederAdapter.csv_data_feed()
     # print(dataframe_online)
     # print('---------')
     # print(dataframe_csv)
 
     real_start = (2020, 9, 1)
-    real_end = (2021, 1, 6)
+    today = datetime.datetime.today().date()
+    date_list = str(today).split('-')
+
+    real_end = tuple(int(i) for i in date_list)
 
     fuck_start = (2014, 9, 5)
     fuck_end = (2018, 1, 7)
@@ -199,7 +203,7 @@ if __name__ == '__main__':
     # run_backtest(dataframe_online, strategy_list, real_start, real_end)
     period_list = []
     period_list.append((real_start, real_end))
-    period_list.append((fuck_start, fuck_end))
+    # period_list.append((fuck_start, fuck_end))
     # time.sleep(5)
     for p in period_list:
         run_backtest(dataframe_online, strategy_list, p[0], p[1])
