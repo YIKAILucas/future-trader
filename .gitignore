@@ -4,3 +4,4 @@ generated/
 downloadFile/
 doc/
 .history/
+__pycache__/
