@@ -8,5 +8,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.7 (lucas)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="USDA平衡表数据-scrapy" />
+    <orderEntry type="module" module-name="meizitu" />
   </component>
 </module>

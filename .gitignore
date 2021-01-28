@@ -5,3 +5,8 @@ downloadFile/
 doc/
 .history/
 __pycache__/
+
+*.html
+boll.py
+cc.csv
+cdata.csv

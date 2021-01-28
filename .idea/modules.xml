@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/12.10.iml" filepath="$PROJECT_DIR$/.idea/12.10.iml" />
+      <module fileurl="file://$USER_HOME$/交接文件/数据抓取/USDA平衡表数据-scrapy/.idea/USDA平衡表数据-scrapy.iml" filepath="$USER_HOME$/交接文件/数据抓取/USDA平衡表数据-scrapy/.idea/USDA平衡表数据-scrapy.iml" />
+      <module fileurl="file://$USER_HOME$/Personal-Project/meizitu/.idea/meizitu.iml" filepath="$USER_HOME$/Personal-Project/meizitu/.idea/meizitu.iml" />
     </modules>
   </component>
 </project>

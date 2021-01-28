@@ -114,7 +114,7 @@ def calculate_profit(data: pd.DataFrame):
     display_plot(data)
     data.drop(['diff', 'sum', 'calculate', 'cost'], axis=1, inplace=True)
     data.rename(columns={'newcost': 'cost'}, inplace=True)
-    data.to_csv("boll.csv", encoding='utf-8')
+    data.to_csv("backtest/KTick.csv", encoding='utf-8')
     # test_out = pd.read_excel('boll.xlsx',index_col=[3])
     # print(test_out.head())
 

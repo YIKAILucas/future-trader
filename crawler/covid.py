@@ -23,7 +23,7 @@ pd.set_option('max_colwidth', 100)
 
 
 def data_reader():
-    save_path = 'generated/疫情數據.xlsx'
+    save_path = 'generated/全球疫情数据.xlsx'
     pre_data = pd.DataFrame(pd.read_excel(save_path, index_col=0))
     book = load_workbook(save_path)
     new_data_rows = pre_data.shape[0]  # 获取原数据的行数
