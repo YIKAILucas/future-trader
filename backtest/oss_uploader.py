@@ -9,8 +9,8 @@ from itertools import islice
 
 import oss2
 
-ACCKEY = 'LTAI4G88CoREvC1v19yhG8tV'
-Secret = 'qRbu0JY9WdErqo4pwPWftfUQQ2tq0h'
+ACCKEY = ''# 防泄漏
+Secret = ''
 Bucket = 'vimeracke'
 
 
